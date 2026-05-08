@@ -110,7 +110,7 @@ function createBetOptions(): BetOption[] {
       id: 'small',
       label: 'Small',
       group: 'Quick Bets',
-      description: 'Total 4-10. Triples lose.',
+      description: '4-10, no triples.',
       payoutLabel: '1:1',
       kind: 'small',
     },
@@ -118,7 +118,7 @@ function createBetOptions(): BetOption[] {
       id: 'big',
       label: 'Big',
       group: 'Quick Bets',
-      description: 'Total 11-17. Triples lose.',
+      description: '11-17, no triples.',
       payoutLabel: '1:1',
       kind: 'big',
     },
@@ -126,7 +126,7 @@ function createBetOptions(): BetOption[] {
       id: 'odd',
       label: 'Odd',
       group: 'Quick Bets',
-      description: 'Odd total wins.',
+      description: 'Odd total.',
       payoutLabel: '1:1',
       kind: 'odd',
     },
@@ -134,7 +134,7 @@ function createBetOptions(): BetOption[] {
       id: 'even',
       label: 'Even',
       group: 'Quick Bets',
-      description: 'Even total wins.',
+      description: 'Even total.',
       payoutLabel: '1:1',
       kind: 'even',
     },
@@ -146,7 +146,7 @@ function createBetOptions(): BetOption[] {
       id: `total-${total}`,
       label: `${total}`,
       group: 'Totals' as const,
-      description: `Exact total ${total}.`,
+      description: total <= 5 || total >= 16 ? 'Rare edge hit.' : 'Hit this total.',
       payoutLabel: `${exactTotalPayouts[total]}:1`,
       kind: 'exactTotal' as const,
       target: total,
@@ -154,10 +154,10 @@ function createBetOptions(): BetOption[] {
   })
 
   const singles = DIE_VALUES.map((value) => ({
-    id: `single-${value}`,
-    label: `Single ${value}`,
-    group: 'Singles' as const,
-    description: 'Pays for each matching die.',
+      id: `single-${value}`,
+      label: `Single ${value}`,
+      group: 'Singles' as const,
+      description: 'Pays per match.',
     payoutLabel: '1x-3x',
     kind: 'single' as const,
     target: value,
@@ -168,7 +168,7 @@ function createBetOptions(): BetOption[] {
       id: 'any-double',
       label: 'Any double',
       group: 'Doubles',
-      description: 'Any pair appears.',
+      description: 'Any pair.',
       payoutLabel: '3:1',
       kind: 'anyDouble',
     },
@@ -176,7 +176,7 @@ function createBetOptions(): BetOption[] {
       id: `double-${value}`,
       label: `${value}-${value}`,
       group: 'Doubles' as const,
-      description: `Specific double ${value}-${value}.`,
+      description: `Pair of ${value}.`,
       payoutLabel: '8:1',
       kind: 'specificDouble' as const,
       target: value,
@@ -188,7 +188,7 @@ function createBetOptions(): BetOption[] {
       id: 'any-triple',
       label: 'Any triple',
       group: 'Triples',
-      description: 'Any three of a kind.',
+      description: 'Any triple.',
       payoutLabel: '24:1',
       kind: 'anyTriple',
     },
@@ -196,7 +196,7 @@ function createBetOptions(): BetOption[] {
       id: `triple-${value}`,
       label: `${value}-${value}-${value}`,
       group: 'Triples' as const,
-      description: `Specific triple ${value}.`,
+      description: `Triple ${value}.`,
       payoutLabel: '150:1',
       kind: 'specificTriple' as const,
       target: value,
@@ -527,7 +527,7 @@ function DiceModel({
   })
 
   return (
-    <group ref={groupRef} position={position} scale={phase === 'reveal' ? 1.08 : 1}>
+    <group ref={groupRef} position={position} scale={phase === 'reveal' ? 1.42 : 1.32}>
       <RoundedBox args={[1.15, 1.15, 1.15]} radius={0.13} smoothness={7}>
         <meshStandardMaterial
           color="#fff6df"
@@ -559,7 +559,7 @@ function CasinoCover({ phase }: { phase: GamePhase }) {
   })
 
   return (
-    <group ref={groupRef} position={[0, 0.42, 0]} scale={[1.72, 1, 0.72]}>
+    <group ref={groupRef} position={[0, 0.42, 0]} scale={[2.05, 1, 0.72]}>
       <mesh castShadow receiveShadow>
         <cylinderGeometry args={[1.28, 1.72, 1.48, 64, 1, false]} />
         <meshStandardMaterial
@@ -660,7 +660,7 @@ function DiceStage({
           </div>
         </div>
       )}
-      <Canvas camera={{ position: [0, 2.1, 6.1], fov: 42 }} shadows>
+      <Canvas camera={{ position: [0, 2.05, 5.35], fov: 36 }} shadows>
         <color attach="background" args={['#06100d']} />
         <ambientLight intensity={0.8} />
         <spotLight
@@ -673,9 +673,9 @@ function DiceStage({
         <pointLight position={[-4, 2, 4]} intensity={3} color="#f0b35b" />
         <pointLight position={[4, 2, 3]} intensity={2.4} color="#4ade80" />
         <group rotation={[-0.18, 0, 0]}>
-          <DiceModel value={visibleValues[0]} phase={phase} position={[-1.55, 0.1, 0]} index={0} />
+          <DiceModel value={visibleValues[0]} phase={phase} position={[-2.55, 0.1, 0]} index={0} />
           <DiceModel value={visibleValues[1]} phase={phase} position={[0, 0.15, 0.06]} index={1} />
-          <DiceModel value={visibleValues[2]} phase={phase} position={[1.55, 0.1, 0]} index={2} />
+          <DiceModel value={visibleValues[2]} phase={phase} position={[2.55, 0.1, 0]} index={2} />
           {diceClosed && <CasinoCover phase={phase} />}
         </group>
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.72, 0]}>
@@ -1011,7 +1011,7 @@ function App() {
 
         <div className="grid min-h-0 flex-1 gap-2">
           <section className="flex min-h-0 min-w-0 flex-col gap-2">
-            <div className="h-[18vh] min-h-[116px] max-h-[158px] rounded-[1.55rem] bg-black/25 shadow-2xl shadow-black/40">
+            <div className="h-[17vh] min-h-[112px] max-h-[150px] rounded-[1.55rem] bg-black/25 shadow-2xl shadow-black/40">
               <DiceStage
                 phase={phase}
                 result={result}
@@ -1021,12 +1021,9 @@ function App() {
             </div>
 
             <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_286px]">
-              <div className="min-h-0 rounded-[1.35rem] bg-white/[0.045] p-2 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(251,191,36,0.08)]">
+              <div className="relative min-h-0 overflow-hidden rounded-[1.35rem] bg-white/[0.045] p-2 pb-4 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(251,191,36,0.08)]">
                 <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200/65">
-                      Pick your chip
-                    </p>
                     <h2 className="text-base font-black text-white">Bet board</h2>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -1048,6 +1045,26 @@ function App() {
                   </div>
                 </div>
 
+                {!canBet && (
+                  <div className="pointer-events-none absolute inset-x-3 top-10 z-20">
+                    <div className="relative mx-auto flex max-w-[680px] items-center justify-center">
+                      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-amber-200/55 to-transparent" />
+                      <div className="absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-between opacity-75">
+                        {Array.from({ length: 12 }, (_, index) => (
+                          <span
+                            key={index}
+                            className="h-3 w-6 rotate-[-16deg] rounded-full border border-amber-100/45 bg-black/30 shadow-[0_0_14px_rgba(245,158,11,0.18)] odd:rotate-[16deg]"
+                          />
+                        ))}
+                      </div>
+                      <div className="animate-[lockedPulse_1.6s_ease-in-out_infinite] relative inline-flex items-center gap-2 rounded-full border border-red-200/45 bg-[#2a0807]/92 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.22em] text-red-100 shadow-[0_0_28px_rgba(248,113,113,0.22)] backdrop-blur">
+                        <LockKeyhole size={13} />
+                        Table locked
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-1">
                   {groupedOptions.map(({ group, options }) => (
                     <section key={group}>
@@ -1055,11 +1072,6 @@ function App() {
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-300">
                           {group}
                         </h3>
-                        {group === 'Quick Bets' && !canBet && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-1 text-xs font-bold text-red-200">
-                            <LockKeyhole size={12} /> Locked
-                          </span>
-                        )}
                       </div>
                       <div
                         className={cx(
@@ -1080,7 +1092,7 @@ function App() {
                               disabled={disabled}
                               onClick={() => placeBet(option)}
                               className={cx(
-                                'group min-h-[32px] rounded-lg border p-1 text-left shadow-lg transition duration-200',
+                                'group min-h-[30px] rounded-lg border p-1 text-left shadow-lg transition duration-200',
                                 disabled
                                   ? 'cursor-not-allowed border-white/5 bg-white/[0.025] text-stone-500'
                                   : cx(
@@ -1266,8 +1278,7 @@ function App() {
               </p>
               <h2 className="mt-2 text-3xl font-black text-white">Choose a nickname</h2>
               <p className="mt-3 text-sm leading-6 text-stone-400">
-                You will receive {formatCredits(STARTING_BALANCE)} session credits. No account or
-                storage is used.
+                You will receive {formatCredits(STARTING_BALANCE)} session credits.
               </p>
             </div>
             <label className="block">
