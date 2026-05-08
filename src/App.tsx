@@ -834,6 +834,7 @@ function App() {
   const betsRef = useRef(bets);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
   const historyPopoverRef = useRef<HTMLDivElement>(null);
+  const rollingAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastTickSecondRef = useRef<number | null>(null);
 
   const groupedOptions = useMemo(
@@ -902,6 +903,25 @@ function App() {
     lastTickSecondRef.current = secondsLeft;
     playCountdownTick();
   }, [nickname, phase, secondsLeft]);
+
+  useEffect(() => {
+    if (!nickname || phase !== "rolling") {
+      rollingAudioRef.current?.pause();
+      rollingAudioRef.current = null;
+      return;
+    }
+
+    const audio = new Audio("/assets/dice-shake.mp3");
+    audio.volume = 0.38;
+    audio.loop = true;
+    rollingAudioRef.current = audio;
+    void audio.play().catch(() => undefined);
+
+    return () => {
+      audio.pause();
+      rollingAudioRef.current = null;
+    };
+  }, [nickname, phase]);
 
   useEffect(() => {
     if (!nickname) return;
@@ -1103,33 +1123,19 @@ function App() {
                       history.map((record) => (
                         <div
                           key={record.round}
-                          className="rounded-2xl border border-white/10 bg-black/30 p-3"
+                          className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-3"
                         >
-                          <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
                             <p className="font-black text-white">
                               Round #{record.round}
                             </p>
-                            <p
-                              className={cx(
-                                "text-sm font-black",
-                                record.net > 0
-                                  ? "text-amber-100"
-                                  : record.net < 0
-                                    ? "text-red-200"
-                                    : "text-stone-400",
-                              )}
-                            >
-                              {record.net > 0
-                                ? `+${formatCredits(record.net)}`
-                                : record.net < 0
-                                  ? `-${formatCredits(Math.abs(record.net))}`
-                                  : "0"}
+                            <p className="mt-1 text-sm font-semibold text-stone-400">
+                              {record.result.join("-")}
                             </p>
                           </div>
-                          <p className="mt-1 text-sm text-stone-400">
-                            {record.result.join("-")} total {record.total} -{" "}
-                            {record.betCount} bets
-                          </p>
+                          <div className="grid h-12 min-w-12 place-items-center rounded-2xl border border-amber-100/20 bg-amber-200/10 px-3 text-xl font-black leading-none text-amber-100">
+                            {record.total}
+                          </div>
                         </div>
                       ))
                     )}
@@ -1179,15 +1185,29 @@ function App() {
                 </div>
 
                 {!canBet && (
-                  <div className="pointer-events-none absolute inset-0 z-20 rounded-[1.35rem] bg-black/18">
-                    <img
-                      src="/assets/chain-lock-frame.png"
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-fill opacity-95 drop-shadow-[0_0_22px_rgba(245,158,11,0.24)]"
-                      draggable={false}
-                    />
+                  <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[1.35rem] bg-black/20">
+                    {["topLeft", "topRight", "bottomLeft", "bottomRight"].map(
+                      (corner) => (
+                        <img
+                          key={corner}
+                          src="/assets/chain-lock-arm.png"
+                          alt=""
+                          className={cx(
+                            "lock-chain-arm absolute opacity-0 drop-shadow-[0_0_18px_rgba(245,158,11,0.28)]",
+                            corner === "topLeft" && "lock-chain-arm--top-left",
+                            corner === "topRight" &&
+                              "lock-chain-arm--top-right",
+                            corner === "bottomLeft" &&
+                              "lock-chain-arm--bottom-left",
+                            corner === "bottomRight" &&
+                              "lock-chain-arm--bottom-right",
+                          )}
+                          draggable={false}
+                        />
+                      ),
+                    )}
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="animate-[lockedPulse_1.6s_ease-in-out_infinite] inline-flex items-center gap-2 rounded-full border border-red-200/55 bg-[#2a0807]/95 px-5 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-red-100 shadow-[0_0_32px_rgba(248,113,113,0.3)] backdrop-blur">
+                      <div className="lock-center-badge inline-flex items-center gap-2 rounded-full border border-red-200/55 bg-[#2a0807]/95 px-5 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-red-100 shadow-[0_0_32px_rgba(248,113,113,0.3)] backdrop-blur">
                         <LockKeyhole size={14} />
                         Table locked
                       </div>

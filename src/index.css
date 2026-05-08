@@ -91,6 +91,113 @@ input:focus-visible {
   }
 }
 
+.lock-chain-arm {
+  width: min(58%, 620px);
+  height: auto;
+  transform-origin: center;
+  animation-duration: 720ms;
+  animation-fill-mode: forwards;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lock-chain-arm--top-left {
+  left: -10%;
+  top: -18%;
+  animation-name: chainLockTopLeft;
+}
+
+.lock-chain-arm--top-right {
+  right: -10%;
+  top: -18%;
+  animation-name: chainLockTopRight;
+}
+
+.lock-chain-arm--bottom-left {
+  bottom: -18%;
+  left: -10%;
+  animation-name: chainLockBottomLeft;
+}
+
+.lock-chain-arm--bottom-right {
+  bottom: -18%;
+  right: -10%;
+  animation-name: chainLockBottomRight;
+}
+
+.lock-center-badge {
+  opacity: 0;
+  transform: scale(0.86);
+  animation: lockBadgeReveal 420ms ease-out 560ms forwards,
+    lockedPulse 1.6s ease-in-out 1.1s infinite;
+}
+
+@keyframes chainLockTopLeft {
+  from {
+    opacity: 0;
+    transform: translate(-42%, -38%) scaleY(-1);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.96;
+    transform: translate(9%, 22%) scaleY(-1);
+  }
+}
+
+@keyframes chainLockTopRight {
+  from {
+    opacity: 0;
+    transform: translate(42%, -38%) scale(-1, -1);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.96;
+    transform: translate(-9%, 22%) scale(-1, -1);
+  }
+}
+
+@keyframes chainLockBottomLeft {
+  from {
+    opacity: 0;
+    transform: translate(-42%, 38%);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.96;
+    transform: translate(9%, -22%);
+  }
+}
+
+@keyframes chainLockBottomRight {
+  from {
+    opacity: 0;
+    transform: translate(42%, 38%) scaleX(-1);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.96;
+    transform: translate(-9%, -22%) scaleX(-1);
+  }
+}
+
+@keyframes lockBadgeReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
