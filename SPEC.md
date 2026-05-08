@@ -11,18 +11,19 @@
 
 - Show a required nickname modal on first load; it cannot be dismissed until a nickname is entered.
 - Start each player with `5000` credits.
-- Display an app bar with nickname, balance, round number, current phase, countdown, and session history.
+- Display an app bar with nickname, balance, round number, current phase, countdown, and a game history icon.
 - Main screen has a large 16:9 TV-style dice stage showing three animated 3D dice.
-- Dice continuously roll/shuffle during betting and lockdown, then settle into the result during reveal.
+- Dice roll only during the start rolling phase, then stop under a casino-style cover while bets are open.
 - Game auto-advances through rounds without user action.
 
 ## Round Flow
 
-- Each round lasts `60s` before reveal.
-- `60s-11s`: betting phase, bets are accepted.
-- `10s-1s`: lockdown phase, bets are no longer accepted.
-- `0s`: reveal dice result.
-- After reveal: settle bets, show win/loss summary, animate winnings, update balance, then start next round after about `5s`.
+- `5s`: idle cooldown before the next game starts.
+- `10s`: start rolling phase; dice roll on the TV screen and betting is closed.
+- `60s`: countdown phase; the casino cover is closed and bets are accepted.
+- `4s`: lockdown phase; bets are no longer accepted or removable.
+- Reveal dice result.
+- After reveal: settle bets, show win/loss summary, animate winnings, update balance, then return to idle after about `5s`.
 - Stake is deducted when a bet is placed.
 - Winning payout adds stake plus profit back to balance.
 
@@ -44,19 +45,20 @@
 - Visual direction: late-night broadcast casino table, dark glass, emerald felt, brass accents, sharp timer states, and celebratory gold win effects.
 - Betting board includes chip selector: `10`, `50`, `100`, `500`, `1000`.
 - Betting board groups: Quick Bets, Totals, Singles, Doubles, Triples.
-- Current bet slip shows placed bets, total staked, and removable bets before lockdown.
+- Current bet slip shows placed bets, total staked, and removable bets during countdown.
 - Disabled states for lockdown and insufficient balance.
 - Result summary shows dice values, total, winning bets, losing bets, payout, and new balance.
-- History is per-session only and shows recent round results.
+- History is per-session only and appears in an app-bar popover.
 
 ## 3D Dice Requirements
 
 - Use React Three Fiber with Three.js.
 - Render three rounded dice with visible pips, glossy material, table lighting, and subtle camera depth.
 - Dice animation states:
-  - Rolling/shuffling during betting.
-  - Faster/tenser motion during lockdown.
-  - Settle/snap to final values during reveal.
+  - Still during idle.
+  - Rolling/shuffling during start rolling.
+  - Stopped and covered during countdown and lockdown.
+  - Uncovered final values during reveal and settling.
   - Small celebratory pulse or particles if player wins.
 - Keep DOM HUD and betting UI outside the canvas.
 
@@ -65,7 +67,7 @@
 - Add dependencies: `tailwindcss`, `@tailwindcss/vite`, `three`, `@react-three/fiber`, `@react-three/drei`, and `lucide-react`.
 - Replace current starter UI in `src/App.tsx` and app styles.
 - Suggested core types:
-  - `GamePhase = 'betting' | 'lockdown' | 'reveal' | 'settling'`
+  - `GamePhase = 'idle' | 'rolling' | 'countdown' | 'lockdown' | 'reveal' | 'settling'`
   - `DieValue = 1 | 2 | 3 | 4 | 5 | 6`
   - `DiceResult = [DieValue, DieValue, DieValue]`
   - `BetOption`, `PlacedBet`, `RoundRecord`, `PayoutSummary`
@@ -75,7 +77,7 @@
 ## Responsive Requirements
 
 - Desktop: app bar on top, TV screen as the main visual anchor, betting board/slip arranged beside or below depending width.
-- Mobile: TV screen first, compact top bar, betting groups in scrollable sections, slip/history collapsible.
+- Mobile: TV screen first, compact top bar, betting groups in scrollable sections, slip below the board, and history in the app-bar popover.
 - Text must not overlap, overflow buttons, or hide controls on small screens.
 
 ## Test Plan

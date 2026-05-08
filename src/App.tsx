@@ -1,7 +1,7 @@
 import { Canvas, useFrame } from '@react-three/fiber'
 import { ContactShadows, Environment, RoundedBox, Sparkles } from '@react-three/drei'
 import {
-  CircleDollarSign,
+  Dices,
   History,
   LockKeyhole,
   Timer,
@@ -14,7 +14,7 @@ import type { FormEvent } from 'react'
 import { MathUtils } from 'three'
 import type { Group } from 'three'
 
-type GamePhase = 'betting' | 'lockdown' | 'reveal' | 'settling'
+type GamePhase = 'idle' | 'rolling' | 'countdown' | 'lockdown' | 'reveal' | 'settling'
 type DieValue = 1 | 2 | 3 | 4 | 5 | 6
 type DiceResult = [DieValue, DieValue, DieValue]
 type BetGroup = 'Quick Bets' | 'Totals' | 'Singles' | 'Doubles' | 'Triples'
@@ -72,8 +72,10 @@ type RoundRecord = {
 }
 
 const STARTING_BALANCE = 5000
-const ROUND_SECONDS = 60
-const LOCKDOWN_SECONDS = 10
+const IDLE_SECONDS = 5
+const ROLLING_SECONDS = 10
+const COUNTDOWN_SECONDS = 60
+const LOCKDOWN_SECONDS = 4
 const REVEAL_SECONDS = 3
 const SETTLE_SECONDS = 5
 const CHIP_VALUES = [10, 50, 100, 500, 1000]
@@ -98,7 +100,9 @@ const exactTotalPayouts: Record<number, number> = {
 }
 
 const phaseLabels: Record<GamePhase, string> = {
-  betting: 'Betting open',
+  idle: 'Idle cooldown',
+  rolling: 'Start rolling',
+  countdown: 'Countdown',
   lockdown: 'Lockdown',
   reveal: 'Dice open',
   settling: 'Settling',
@@ -216,6 +220,39 @@ const BET_OPTIONS = createBetOptions()
 
 function formatCredits(value: number) {
   return numberFormatter.format(value)
+}
+
+function phaseDetail(phase: GamePhase) {
+  switch (phase) {
+    case 'idle':
+      return 'Cooling table'
+    case 'rolling':
+      return 'Dice rolling'
+    case 'countdown':
+      return 'Bets open'
+    case 'lockdown':
+      return 'Bets locked'
+    case 'reveal':
+      return 'Result open'
+    case 'settling':
+      return 'Paying table'
+  }
+}
+
+function phasePanelClass(phase: GamePhase) {
+  switch (phase) {
+    case 'lockdown':
+      return 'border-red-300/30 bg-red-500/10 text-red-100'
+    case 'countdown':
+      return 'border-emerald-200/20 bg-emerald-300/[0.08] text-emerald-100'
+    case 'rolling':
+      return 'border-amber-200/25 bg-amber-300/[0.08] text-amber-100'
+    case 'reveal':
+    case 'settling':
+      return 'border-amber-200/30 bg-amber-300/10 text-amber-100'
+    case 'idle':
+      return 'border-white/10 bg-white/[0.04] text-stone-200'
+  }
 }
 
 function randomDie(): DieValue {
@@ -409,11 +446,11 @@ function DiceModel({
   useFrame((state, delta) => {
     if (!groupRef.current) return
 
-    const isRolling = phase === 'betting' || phase === 'lockdown'
-    const speed = phase === 'lockdown' ? 5.8 : 3.2
-    const bob = Math.sin(state.clock.elapsedTime * 2.6 + index) * 0.07
+    const isRolling = phase === 'rolling'
+    const speed = 5.2
+    const bob = isRolling ? Math.sin(state.clock.elapsedTime * 2.8 + index) * 0.08 : 0
 
-    groupRef.current.position.y = position[1] + bob
+    groupRef.current.position.y = MathUtils.damp(groupRef.current.position.y, position[1] + bob, 8, delta)
 
     if (isRolling) {
       groupRef.current.rotation.x += delta * speed * (1.1 + index * 0.12)
@@ -444,6 +481,40 @@ function DiceModel({
   )
 }
 
+function CasinoCover({ phase }: { phase: GamePhase }) {
+  const groupRef = useRef<Group>(null)
+
+  useFrame((state, delta) => {
+    if (!groupRef.current) return
+
+    const pulse = phase === 'lockdown' ? Math.sin(state.clock.elapsedTime * 5) * 0.035 : 0
+    groupRef.current.position.y = MathUtils.damp(groupRef.current.position.y, 0.42 + pulse, 7, delta)
+    groupRef.current.rotation.y = MathUtils.damp(
+      groupRef.current.rotation.y,
+      phase === 'lockdown' ? 0.05 : 0,
+      6,
+      delta,
+    )
+  })
+
+  return (
+    <group ref={groupRef} position={[0, 0.42, 0]}>
+      <RoundedBox args={[5.2, 1.35, 1.72]} radius={0.35} smoothness={9}>
+        <meshStandardMaterial
+          color="#17110b"
+          roughness={0.38}
+          metalness={0.55}
+          emissive={phase === 'lockdown' ? '#3a0909' : '#0b1f16'}
+          emissiveIntensity={phase === 'lockdown' ? 0.18 : 0.08}
+        />
+      </RoundedBox>
+      <RoundedBox args={[1.2, 0.22, 0.38]} radius={0.12} smoothness={6} position={[0, 0.78, 0]}>
+        <meshStandardMaterial color="#d4a84c" roughness={0.34} metalness={0.8} />
+      </RoundedBox>
+    </group>
+  )
+}
+
 function DiceStage({
   phase,
   result,
@@ -454,14 +525,12 @@ function DiceStage({
   winning: boolean
 }) {
   const [displayValues, setDisplayValues] = useState<DiceResult>(result)
-  const visibleValues = phase === 'betting' || phase === 'lockdown' ? displayValues : result
+  const visibleValues = phase === 'rolling' ? displayValues : result
+  const diceClosed = phase === 'countdown' || phase === 'lockdown'
 
   useEffect(() => {
-    if (phase === 'betting' || phase === 'lockdown') {
-      const interval = window.setInterval(
-        () => setDisplayValues(randomDice()),
-        phase === 'lockdown' ? 130 : 230,
-      )
+    if (phase === 'rolling') {
+      const interval = window.setInterval(() => setDisplayValues(randomDice()), 120)
       return () => window.clearInterval(interval)
     }
   }, [phase])
@@ -490,6 +559,7 @@ function DiceStage({
           <DiceModel value={visibleValues[0]} phase={phase} position={[-1.55, 0.1, 0]} index={0} />
           <DiceModel value={visibleValues[1]} phase={phase} position={[0, 0.15, 0.06]} index={1} />
           <DiceModel value={visibleValues[2]} phase={phase} position={[1.55, 0.1, 0]} index={2} />
+          {diceClosed && <CasinoCover phase={phase} />}
         </group>
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.72, 0]}>
           <planeGeometry args={[8.5, 4]} />
@@ -520,13 +590,14 @@ function App() {
   const [nameDraft, setNameDraft] = useState('')
   const [balance, setBalance] = useState(STARTING_BALANCE)
   const [roundNumber, setRoundNumber] = useState(1)
-  const [phase, setPhase] = useState<GamePhase>('betting')
-  const [secondsLeft, setSecondsLeft] = useState(ROUND_SECONDS)
+  const [phase, setPhase] = useState<GamePhase>('idle')
+  const [secondsLeft, setSecondsLeft] = useState(IDLE_SECONDS)
   const [selectedChip, setSelectedChip] = useState(100)
   const [bets, setBets] = useState<PlacedBet[]>([])
   const [result, setResult] = useState<DiceResult>(() => randomDice())
   const [summary, setSummary] = useState<PayoutSummary | null>(null)
   const [history, setHistory] = useState<RoundRecord[]>([])
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const betsRef = useRef(bets)
 
   const groupedOptions = useMemo(
@@ -539,7 +610,7 @@ function App() {
   )
 
   const totalStaked = useMemo(() => bets.reduce((sum, bet) => sum + bet.stake, 0), [bets])
-  const canBet = Boolean(nickname) && phase === 'betting'
+  const canBet = Boolean(nickname) && phase === 'countdown'
   const hasWon = Boolean(summary && summary.totalPayout > 0)
   const resultTotal = totalDice(result)
 
@@ -551,15 +622,46 @@ function App() {
     if (!nickname) return
 
     const timeout = window.setTimeout(() => {
-      if (phase === 'betting' || phase === 'lockdown') {
+      if (phase === 'idle') {
         if (secondsLeft > 1) {
-          const nextSeconds = secondsLeft - 1
-          setSecondsLeft(nextSeconds)
-          setPhase(nextSeconds <= LOCKDOWN_SECONDS ? 'lockdown' : 'betting')
+          setSecondsLeft((current) => current - 1)
           return
         }
+        setPhase('rolling')
+        setSecondsLeft(ROLLING_SECONDS)
+        setBets([])
+        setSummary(null)
+        setResult(randomDice())
+        return
+      }
 
-        const nextResult = randomDice()
+      if (phase === 'rolling') {
+        if (secondsLeft > 1) {
+          setSecondsLeft((current) => current - 1)
+          return
+        }
+        setResult(randomDice())
+        setPhase('countdown')
+        setSecondsLeft(COUNTDOWN_SECONDS)
+        return
+      }
+
+      if (phase === 'countdown') {
+        if (secondsLeft > 1) {
+          setSecondsLeft((current) => current - 1)
+          return
+        }
+        setPhase('lockdown')
+        setSecondsLeft(LOCKDOWN_SECONDS)
+        return
+      }
+
+      if (phase === 'lockdown') {
+        if (secondsLeft > 1) {
+          setSecondsLeft((current) => current - 1)
+          return
+        }
+        const nextResult = result
         const activeBets = betsRef.current
         const nextSummary = settleBets(activeBets, nextResult)
         setResult(nextResult)
@@ -590,15 +692,15 @@ function App() {
       }
 
       setRoundNumber((current) => current + 1)
-      setPhase('betting')
-      setSecondsLeft(ROUND_SECONDS)
+      setPhase('idle')
+      setSecondsLeft(IDLE_SECONDS)
       setBets([])
       setSummary(null)
       setResult(randomDice())
     }, 1000)
 
     return () => window.clearTimeout(timeout)
-  }, [nickname, phase, roundNumber, secondsLeft])
+  }, [nickname, phase, result, roundNumber, secondsLeft])
 
   function handleJoin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -634,10 +736,10 @@ function App() {
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_20%_5%,rgba(20,184,166,0.18),transparent_32%),radial-gradient(circle_at_86%_12%,rgba(251,191,36,0.14),transparent_28%),linear-gradient(135deg,#04130f,#090b0b_44%,#120b07)]" />
 
       <section className="mx-auto flex min-h-screen w-full max-w-[1500px] flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-3 rounded-3xl border border-white/10 bg-black/35 p-3 shadow-2xl shadow-black/30 backdrop-blur md:flex-row md:items-center md:justify-between">
+        <header className="relative z-50 flex flex-col gap-3 rounded-3xl border border-white/10 bg-black/35 p-3 shadow-2xl shadow-black/30 backdrop-blur md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-200/20">
-              <CircleDollarSign size={24} />
+              <Dices size={24} />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.26em] text-amber-100/60">
@@ -649,27 +751,25 @@ function App() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4 md:min-w-[620px]">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
+          <div className="relative flex flex-wrap gap-2 text-sm md:justify-end">
+            <div className="min-w-[140px] flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 md:flex-none">
               <p className="flex items-center gap-1 text-xs text-stone-400">
                 <UserRound size={13} /> Player
               </p>
               <p className="truncate font-bold text-white">{nickname || 'Guest'}</p>
             </div>
-            <div className="rounded-2xl border border-emerald-200/15 bg-emerald-300/[0.06] px-3 py-2">
+            <div className="min-w-[140px] flex-1 rounded-2xl border border-emerald-200/15 bg-emerald-300/[0.06] px-3 py-2 md:flex-none">
               <p className="text-xs text-stone-400">Balance</p>
               <p className="font-bold text-emerald-100">{formatCredits(balance)}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
+            <div className="min-w-[110px] flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 md:flex-none">
               <p className="text-xs text-stone-400">Round</p>
               <p className="font-bold text-white">#{roundNumber}</p>
             </div>
             <div
               className={cx(
-                'rounded-2xl border px-3 py-2',
-                phase === 'lockdown'
-                  ? 'border-red-300/30 bg-red-500/10 text-red-100'
-                  : 'border-amber-200/20 bg-amber-300/[0.06] text-amber-100',
+                'min-w-[190px] flex-1 rounded-2xl border px-3 py-2 md:flex-none',
+                phasePanelClass(phase),
               )}
             >
               <p className="flex items-center gap-1 text-xs text-stone-400">
@@ -678,14 +778,93 @@ function App() {
               <p className="font-bold">
                 {phaseLabels[phase]} - {secondsLeft}s
               </p>
+              <p className="text-xs font-semibold text-stone-400">{phaseDetail(phase)}</p>
+            </div>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsHistoryOpen((current) => !current)}
+                className="relative flex h-full min-h-[58px] min-w-[58px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-amber-100 transition hover:border-amber-200/40 hover:bg-amber-300/10"
+                aria-label="Show game history"
+                aria-expanded={isHistoryOpen}
+              >
+                <History size={22} />
+                {history.length > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-300 px-1 text-xs font-black text-black">
+                    {history.length}
+                  </span>
+                )}
+              </button>
+
+              {isHistoryOpen && (
+                <div className="absolute right-0 top-full z-40 mt-3 w-[min(88vw,380px)] rounded-3xl border border-white/10 bg-[#07100d]/95 p-4 shadow-2xl shadow-black/60 backdrop-blur">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
+                        Session only
+                      </p>
+                      <h2 className="text-xl font-black text-white">Game history</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsHistoryOpen(false)}
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-stone-300 hover:border-amber-200/40 hover:text-amber-100"
+                      aria-label="Close history"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
+                    {history.length === 0 ? (
+                      <p className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-stone-500">
+                        Completed rounds will appear here until refresh.
+                      </p>
+                    ) : (
+                      history.map((record) => (
+                        <div
+                          key={record.round}
+                          className="rounded-2xl border border-white/10 bg-black/30 p-3"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="font-black text-white">Round #{record.round}</p>
+                            <p
+                              className={cx(
+                                'text-sm font-black',
+                                record.net > 0
+                                  ? 'text-amber-100'
+                                  : record.net < 0
+                                    ? 'text-red-200'
+                                    : 'text-stone-400',
+                              )}
+                            >
+                              {record.net > 0
+                                ? `+${formatCredits(record.net)}`
+                                : record.net < 0
+                                  ? `-${formatCredits(Math.abs(record.net))}`
+                                  : '0'}
+                            </p>
+                          </div>
+                          <p className="mt-1 text-sm text-stone-400">
+                            {record.result.join('-')} total {record.total} - {record.betCount} bets
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
-        <div className="grid flex-1 gap-5 xl:grid-cols-[minmax(0,1fr)_430px]">
+        <div className="grid flex-1 gap-5">
           <section className="flex min-w-0 flex-col gap-5">
             <div className="rounded-[2rem] border border-white/10 bg-black/30 p-2 shadow-2xl shadow-black/40">
-              <DiceStage phase={phase} result={result} winning={hasWon && phase !== 'betting'} />
+              <DiceStage
+                phase={phase}
+                result={result}
+                winning={hasWon && (phase === 'reveal' || phase === 'settling')}
+              />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
@@ -828,8 +1007,8 @@ function App() {
                     </div>
                   ) : (
                     <p className="rounded-2xl bg-black/25 p-4 text-sm leading-6 text-stone-400">
-                      Place bets before lockdown. The dice reveal automatically when the countdown
-                      hits zero.
+                      Bets open only during countdown while the casino cover is closed. The dice
+                      reveal after lockdown.
                     </p>
                   )}
                 </section>
@@ -903,65 +1082,6 @@ function App() {
               </aside>
             </div>
           </section>
-
-          <aside className="flex min-w-0 flex-col gap-5">
-            <section className="rounded-3xl border border-white/10 bg-white/[0.045] p-4 shadow-xl shadow-black/20">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
-                    Session only
-                  </p>
-                  <h2 className="text-2xl font-black text-white">History</h2>
-                </div>
-                <History className="text-amber-100/70" />
-              </div>
-              <div className="space-y-2">
-                {history.length === 0 ? (
-                  <p className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-stone-500">
-                    Completed rounds will appear here until refresh.
-                  </p>
-                ) : (
-                  history.map((record) => (
-                    <div
-                      key={record.round}
-                      className="rounded-2xl border border-white/10 bg-black/25 p-3"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-black text-white">Round #{record.round}</p>
-                        <p
-                          className={cx(
-                            'text-sm font-black',
-                            record.net > 0
-                              ? 'text-amber-100'
-                              : record.net < 0
-                                ? 'text-red-200'
-                                : 'text-stone-400',
-                          )}
-                        >
-                          {record.net > 0
-                            ? `+${formatCredits(record.net)}`
-                            : record.net < 0
-                              ? `-${formatCredits(Math.abs(record.net))}`
-                              : '0'}
-                        </p>
-                      </div>
-                      <p className="mt-1 text-sm text-stone-400">
-                        {record.result.join('-')} total {record.total} - {record.betCount} bets
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-3xl border border-amber-200/15 bg-amber-300/[0.06] p-4 text-sm leading-6 text-amber-50/80">
-              <p className="font-black text-amber-100">Fun-play table</p>
-              <p className="mt-1">
-                Credits are local session points only. Refreshing the page resets nickname, balance,
-                bets, and round history.
-              </p>
-            </section>
-          </aside>
         </div>
       </section>
 

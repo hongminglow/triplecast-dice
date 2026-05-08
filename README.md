@@ -1,6 +1,6 @@
 # TripleCast Dice
 
-TripleCast Dice is a one-page, fun-play dice betting game built with React 19, Vite, TypeScript, Tailwind 4, and React Three Fiber. It plays like a fast casino broadcast table: three dice roll on a TV-style 3D stage, players place session-credit bets before lockdown, and each round settles automatically.
+TripleCast Dice is a one-page, fun-play dice betting game built with React 19, Vite, TypeScript, Tailwind 4, and React Three Fiber. It plays like a fast casino broadcast table: three dice roll on a TV-style 3D stage, the table cover closes, players place session-credit bets during countdown, and each round settles automatically.
 
 This is not a real-money betting product. Everything is client-side and session-only. Refreshing the page resets the nickname, balance, bets, result history, and current round.
 
@@ -8,40 +8,49 @@ This is not a real-money betting product. Everything is client-side and session-
 
 - Required nickname modal before entering the table.
 - Starting balance of `5,000` session credits.
-- Top app bar with nickname, balance, round number, phase, and countdown.
+- Top app bar with nickname, balance, round number, phase, countdown, and a history icon.
 - Large 16:9 TV-style Three.js dice stage with three animated dice.
+- Casino-style cover that closes over the dice while bets are open.
 - Betting board with chip values `10`, `50`, `100`, `500`, and `1000`.
 - Bet slip showing current bets, total stake, removable bets before lockdown, and settlement results.
 - Round result summary with dice values, total, staked amount, payout, and net win/loss.
-- Session-only history of recent completed rounds.
+- Session-only history popover for recent completed rounds.
 - Desktop and mobile responsive layouts.
 
 ## Game Flow
 
 Each round runs automatically.
 
-1. **Betting open**
-   - Countdown starts at `60s`.
-   - Bets are accepted from `60s` down to `11s`.
-   - Dice shuffle continuously on the TV screen.
-   - Stakes are deducted immediately when bets are placed.
+1. **Idle cooldown**
+   - Short reset window before the next game starts.
+   - Dice are still and betting is closed.
+   - The previous result summary remains visible briefly while the table resets.
 
-2. **Lockdown**
-   - Starts at `10s`.
+2. **Start rolling**
+   - Dice roll on the TV screen for about `10s`.
+   - Betting is still closed.
+   - When rolling finishes, the dice stop and the casino-style cover closes over them.
+
+3. **Countdown**
+   - Countdown starts at `60s`.
+   - Bets are accepted during this phase only.
+   - Stakes are deducted immediately when bets are placed.
+   - The dice stay covered and stationary.
+
+4. **Lockdown**
    - No new bets can be placed.
    - Existing bets can no longer be removed.
-   - Dice animation becomes tenser while the round waits to reveal.
+   - The covered dice wait briefly before reveal.
 
-3. **Dice open**
-   - Starts when the countdown reaches `0s`.
-   - The three dice settle into the generated result.
+5. **Dice open**
+   - The cover opens and the final dice result is shown.
    - The app evaluates every bet against the final dice values.
 
-4. **Settling**
+6. **Settling**
    - Win/loss summary is shown for about `5s`.
    - Winning payouts are added back to the balance.
    - A history entry is created.
-   - The next round starts automatically.
+   - The game returns to idle cooldown and the next round starts automatically.
 
 ## What Players Are Betting On
 
@@ -79,6 +88,7 @@ Exact total payouts:
 - If the bet loses, the deducted stake is kept as the loss.
 - The result summary shows total staked, total paid, and net win/loss.
 - Winning rounds trigger a gold visual highlight and dice-stage sparkle effect.
+- The app-bar history icon opens a popover with recent rounds.
 - History records the round number, dice result, total, number of bets, and net result.
 
 ## Tech Stack
