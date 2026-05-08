@@ -13,6 +13,8 @@ This is not a real-money betting product. Everything is client-side and session-
 - Cinematic countdown displayed directly over the dice area during betting.
 - Red pulse and tick-tock sound cue during the final `10s` of countdown.
 - Casino-style cover that closes over the dice while bets are open.
+- Large dice-stage result overlay that announces the final values as `x x x` plus the total.
+- Brighter jewel-casino styling with distinct bet colors for Small, Big, Odd, Even, Singles, Doubles, Triples, and exact totals.
 - Betting board with chip values `10`, `50`, `100`, `500`, and `1000`.
 - Bet slip showing current bets, total stake, removable bets before lockdown, and settlement results.
 - Round result summary with dice values, total, staked amount, payout, and net win/loss.
@@ -89,7 +91,7 @@ Exact total payouts:
 - If the bet wins, the app returns the stake plus profit.
 - If the bet loses, the deducted stake is kept as the loss.
 - The result summary shows total staked, total paid, and net win/loss.
-- Winning rounds trigger a gold visual highlight and dice-stage sparkle effect.
+- Winning rounds trigger a gold visual highlight, result overlay emphasis, and dice-stage sparkle effect.
 - The app-bar history icon opens a popover with recent rounds.
 - History records the round number, dice result, total, number of bets, and net result.
 

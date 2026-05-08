@@ -5,7 +5,7 @@
 - Build a one-page React 19 + Vite + TypeScript fun-play dice betting game.
 - Add Tailwind 4 for styling and React Three Fiber/Three.js for the animated dice TV screen.
 - Keep all state client-side and session-only: nickname, balance, bets, history, and round state reset on refresh.
-- Use a dark broadcast-casino visual style: emerald felt, dark glass, brass accents, countdown tension, and gold win effects.
+- Use a jewel-toned broadcast-casino visual style: emerald felt, dark glass, brass accents, rose/cyan/fuchsia bet categories, countdown tension, and gold win effects.
 
 ## Core Experience
 
@@ -16,6 +16,7 @@
 - Countdown appears cinematically over the dice section during betting.
 - The final `10s` countdown turns red, scales up, and plays a tick-tock sound cue.
 - Dice roll only during the start rolling phase, then stop under a casino-style cover while bets are open.
+- Reveal and settling show a large overlay on the dice stage with the final `x x x` result and total.
 - Game auto-advances through rounds without user action.
 
 ## Round Flow
@@ -44,12 +45,14 @@
 
 ## UI Requirements
 
-- Visual direction: late-night broadcast casino table, dark glass, emerald felt, brass accents, sharp timer states, and celebratory gold win effects.
+- Visual direction: joyful premium dice casino, dark glass, emerald felt, brass accents, colored bet groups, sharp timer states, and celebratory gold win effects.
+- Primary bet options must have distinct visual treatments: Small emerald, Big rose, Odd fuchsia, Even cyan, Singles lime, Doubles gold, Triples pink, and exact totals blue/yellow by rarity.
 - Betting board includes chip selector: `10`, `50`, `100`, `500`, `1000`.
 - Betting board groups: Quick Bets, Totals, Singles, Doubles, Triples.
 - Current bet slip shows placed bets, total staked, and removable bets during countdown.
 - Disabled states for lockdown and insufficient balance.
 - Result summary shows dice values, total, winning bets, losing bets, payout, and new balance.
+- Dice-stage result overlay must appear above the dice section during reveal/settling.
 - History is per-session only and appears in an app-bar popover.
 
 ## 3D Dice Requirements

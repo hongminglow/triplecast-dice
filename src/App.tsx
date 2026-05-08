@@ -212,6 +212,80 @@ function formatCredits(value: number) {
   return numberFormatter.format(value)
 }
 
+function getBetTheme(option: BetOption) {
+  if (option.kind === 'small') {
+    return {
+      rail: 'bg-emerald-300',
+      card:
+        'border-emerald-200/30 bg-gradient-to-br from-emerald-500/24 via-[#11291f] to-[#07110d] text-emerald-50 hover:border-emerald-100/70 hover:shadow-emerald-300/25',
+      badge: 'bg-emerald-200 text-emerald-950',
+    }
+  }
+
+  if (option.kind === 'big') {
+    return {
+      rail: 'bg-rose-300',
+      card:
+        'border-rose-200/30 bg-gradient-to-br from-rose-500/24 via-[#301417] to-[#100707] text-rose-50 hover:border-rose-100/70 hover:shadow-rose-300/25',
+      badge: 'bg-rose-200 text-rose-950',
+    }
+  }
+
+  if (option.kind === 'odd') {
+    return {
+      rail: 'bg-fuchsia-300',
+      card:
+        'border-fuchsia-200/30 bg-gradient-to-br from-fuchsia-500/24 via-[#29152f] to-[#0c0710] text-fuchsia-50 hover:border-fuchsia-100/70 hover:shadow-fuchsia-300/25',
+      badge: 'bg-fuchsia-200 text-fuchsia-950',
+    }
+  }
+
+  if (option.kind === 'even') {
+    return {
+      rail: 'bg-cyan-300',
+      card:
+        'border-cyan-200/30 bg-gradient-to-br from-cyan-500/24 via-[#102832] to-[#061014] text-cyan-50 hover:border-cyan-100/70 hover:shadow-cyan-300/25',
+      badge: 'bg-cyan-200 text-cyan-950',
+    }
+  }
+
+  if (option.kind === 'single') {
+    return {
+      rail: 'bg-lime-300',
+      card:
+        'border-lime-200/25 bg-gradient-to-br from-lime-400/18 via-[#1f2910] to-[#090f06] text-lime-50 hover:border-lime-100/60 hover:shadow-lime-300/20',
+      badge: 'bg-lime-200 text-lime-950',
+    }
+  }
+
+  if (option.kind === 'anyDouble' || option.kind === 'specificDouble') {
+    return {
+      rail: 'bg-amber-300',
+      card:
+        'border-amber-200/28 bg-gradient-to-br from-amber-400/20 via-[#2d210d] to-[#110b05] text-amber-50 hover:border-amber-100/70 hover:shadow-amber-300/24',
+      badge: 'bg-amber-200 text-amber-950',
+    }
+  }
+
+  if (option.kind === 'anyTriple' || option.kind === 'specificTriple') {
+    return {
+      rail: 'bg-pink-300',
+      card:
+        'border-pink-200/28 bg-gradient-to-br from-pink-500/22 via-[#311126] to-[#120711] text-pink-50 hover:border-pink-100/70 hover:shadow-pink-300/24',
+      badge: 'bg-pink-200 text-pink-950',
+    }
+  }
+
+  const edgeTotal = option.target === 4 || option.target === 5 || option.target === 16 || option.target === 17
+  return {
+    rail: edgeTotal ? 'bg-yellow-200' : 'bg-sky-300',
+    card: edgeTotal
+      ? 'border-yellow-200/30 bg-gradient-to-br from-yellow-300/20 via-[#2d260d] to-[#111006] text-yellow-50 hover:border-yellow-100/70 hover:shadow-yellow-300/24'
+      : 'border-sky-200/25 bg-gradient-to-br from-sky-400/18 via-[#112239] to-[#061019] text-sky-50 hover:border-sky-100/60 hover:shadow-sky-300/20',
+    badge: edgeTotal ? 'bg-yellow-100 text-yellow-950' : 'bg-sky-200 text-sky-950',
+  }
+}
+
 function randomDie(): DieValue {
   return (Math.floor(Math.random() * 6) + 1) as DieValue
 }
@@ -527,6 +601,8 @@ function DiceStage({
   const diceClosed = phase === 'countdown' || phase === 'lockdown'
   const showCountdown = phase === 'countdown'
   const urgentCountdown = showCountdown && secondsLeft <= 10
+  const showResultOverlay = phase === 'reveal' || phase === 'settling'
+  const resultTotal = totalDice(result)
 
   useEffect(() => {
     if (phase === 'rolling') {
@@ -536,7 +612,7 @@ function DiceStage({
   }, [phase])
 
   return (
-    <div className="relative h-full min-h-[140px] overflow-hidden rounded-[1.5rem] border border-amber-200/20 bg-[radial-gradient(circle_at_50%_15%,rgba(245,183,86,0.2),transparent_28%),linear-gradient(145deg,#07140f,#101816_45%,#050607)] shadow-[0_25px_80px_rgba(0,0,0,0.6)]">
+    <div className="relative h-full min-h-[132px] overflow-hidden rounded-[1.5rem] border border-amber-200/25 bg-[radial-gradient(circle_at_36%_5%,rgba(251,191,36,0.28),transparent_24%),radial-gradient(circle_at_75%_30%,rgba(16,185,129,0.22),transparent_25%),linear-gradient(145deg,#08150f,#172016_45%,#080403)] shadow-[0_25px_80px_rgba(0,0,0,0.6)]">
       <div className="absolute inset-x-5 top-3 z-10 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-100/70">
         <span>Live dice feed</span>
       </div>
@@ -552,6 +628,35 @@ function DiceStage({
             aria-label={`${secondsLeft} seconds remaining`}
           >
             {secondsLeft}
+          </div>
+        </div>
+      )}
+      {showResultOverlay && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/20 px-4 backdrop-blur-[1px]">
+          <div
+            className={cx(
+              'rounded-[1.4rem] border px-5 py-3 text-center shadow-2xl backdrop-blur-md sm:px-8',
+              winning
+                ? 'border-amber-100/60 bg-amber-300/18 shadow-amber-300/25'
+                : 'border-white/20 bg-black/45 shadow-black/50',
+            )}
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.34em] text-amber-100/80">
+              Result is
+            </p>
+            <div className="mt-2 flex items-center justify-center gap-2 sm:gap-3">
+              {result.map((value, index) => (
+                <span
+                  key={`${value}-${index}`}
+                  className="grid h-11 w-11 place-items-center rounded-xl border border-amber-100/40 bg-[#fff7df] text-2xl font-black text-[#170d06] shadow-lg shadow-black/30 sm:h-14 sm:w-14 sm:text-3xl"
+                >
+                  {value}
+                </span>
+              ))}
+            </div>
+            <p className="mt-2 text-xs font-bold uppercase tracking-[0.18em] text-stone-100/80">
+              Total {resultTotal}
+            </p>
           </div>
         </div>
       )}
@@ -759,37 +864,37 @@ function App() {
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-[#040706] text-stone-100">
-      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_20%_5%,rgba(20,184,166,0.18),transparent_32%),radial-gradient(circle_at_86%_12%,rgba(251,191,36,0.14),transparent_28%),linear-gradient(135deg,#04130f,#090b0b_44%,#120b07)]" />
+    <main className="h-[100svh] overflow-x-hidden overflow-y-auto bg-[#050403] text-stone-100 lg:overflow-hidden">
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_12%_0%,rgba(245,158,11,0.28),transparent_28%),radial-gradient(circle_at_86%_8%,rgba(244,63,94,0.2),transparent_25%),radial-gradient(circle_at_54%_108%,rgba(16,185,129,0.24),transparent_38%),linear-gradient(135deg,#140604,#06140e_50%,#190d03)]" />
 
-      <section className="mx-auto flex h-screen w-full max-w-[1500px] flex-col gap-3 px-3 py-3 sm:px-4 lg:px-5">
-        <header className="relative z-50 flex flex-col gap-3 rounded-3xl border border-white/10 bg-black/35 p-2.5 shadow-2xl shadow-black/30 backdrop-blur md:flex-row md:items-center md:justify-between">
+      <section className="mx-auto flex min-h-[100svh] w-full max-w-[1500px] flex-col gap-2 px-2 py-2 sm:px-3 lg:h-[100svh] lg:px-4">
+        <header className="relative z-50 flex flex-col gap-2 rounded-[1.35rem] border border-amber-100/14 bg-[#100805]/70 p-2 shadow-2xl shadow-black/30 backdrop-blur md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-200/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-300/15 text-amber-100 ring-1 ring-amber-100/25">
               <Dices size={23} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-amber-100/60">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-amber-100/60">
                 Three Dice Studio
               </p>
-              <h1 className="text-lg font-black tracking-normal text-white sm:text-xl">
+              <h1 className="text-base font-black tracking-normal text-white sm:text-xl">
                 Broadcast Dice Table
               </h1>
             </div>
           </div>
 
           <div className="relative flex flex-wrap gap-2 text-sm md:justify-end">
-            <div className="min-w-[140px] flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 md:flex-none">
+            <div className="min-w-[128px] flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-1.5 md:flex-none">
               <p className="flex items-center gap-1 text-xs text-stone-400">
                 <UserRound size={13} /> Player
               </p>
               <p className="truncate font-bold text-white">{nickname || 'Guest'}</p>
             </div>
-            <div className="min-w-[140px] flex-1 rounded-2xl border border-emerald-200/15 bg-emerald-300/[0.06] px-3 py-2 md:flex-none">
+            <div className="min-w-[128px] flex-1 rounded-2xl border border-emerald-200/20 bg-emerald-300/[0.08] px-3 py-1.5 md:flex-none">
               <p className="text-xs text-stone-400">Balance</p>
               <p className="font-bold text-emerald-100">{formatCredits(balance)}</p>
             </div>
-            <div className="min-w-[110px] flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 md:flex-none">
+            <div className="min-w-[96px] flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-1.5 md:flex-none">
               <p className="text-xs text-stone-400">Round</p>
               <p className="font-bold text-white">#{roundNumber}</p>
             </div>
@@ -797,7 +902,7 @@ function App() {
               <button
                 type="button"
                 onClick={() => setIsHistoryOpen((current) => !current)}
-                className="relative flex h-full min-h-[58px] min-w-[58px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-amber-100 transition hover:border-amber-200/40 hover:bg-amber-300/10"
+                className="relative flex h-full min-h-[52px] min-w-[52px] cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-amber-100 transition hover:border-amber-200/40 hover:bg-amber-300/10"
                 aria-label="Show game history"
                 aria-expanded={isHistoryOpen}
               >
@@ -821,7 +926,7 @@ function App() {
                     <button
                       type="button"
                       onClick={() => setIsHistoryOpen(false)}
-                      className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-stone-300 hover:border-amber-200/40 hover:text-amber-100"
+                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/10 text-stone-300 transition hover:border-amber-200/40 hover:text-amber-100"
                       aria-label="Close history"
                     >
                       <X size={16} />
@@ -870,9 +975,9 @@ function App() {
           </div>
         </header>
 
-        <div className="grid flex-1 gap-5">
-          <section className="flex min-h-0 min-w-0 flex-col gap-3">
-            <div className="h-[20vh] min-h-[140px] max-h-[220px] rounded-[1.75rem] border border-white/10 bg-black/30 p-2 shadow-2xl shadow-black/40">
+        <div className="grid min-h-0 flex-1 gap-2">
+          <section className="flex min-h-0 min-w-0 flex-col gap-2">
+            <div className="h-[21vh] min-h-[134px] max-h-[184px] rounded-[1.55rem] border border-amber-100/18 bg-black/30 p-1.5 shadow-2xl shadow-black/40">
               <DiceStage
                 phase={phase}
                 result={result}
@@ -881,14 +986,14 @@ function App() {
               />
             </div>
 
-            <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_310px]">
-              <div className="min-h-0 rounded-3xl border border-white/10 bg-white/[0.045] p-3 shadow-xl shadow-black/20">
-                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_292px]">
+              <div className="min-h-0 rounded-[1.35rem] border border-amber-100/12 bg-white/[0.05] p-2 shadow-xl shadow-black/20">
+                <div className="mb-1.5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-200/65">
                       Pick your chip
                     </p>
-                    <h2 className="text-2xl font-black text-white">Bet board</h2>
+                    <h2 className="text-lg font-black text-white">Bet board</h2>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {CHIP_VALUES.map((chip) => (
@@ -897,7 +1002,7 @@ function App() {
                         type="button"
                         onClick={() => setSelectedChip(chip)}
                         className={cx(
-                          'min-h-9 rounded-full border px-3 text-xs font-black transition',
+                          'min-h-7 cursor-pointer rounded-full border px-3 text-xs font-black transition',
                           selectedChip === chip
                             ? 'border-amber-200 bg-amber-300 text-black shadow-lg shadow-amber-300/20'
                             : 'border-white/10 bg-black/35 text-stone-200 hover:border-amber-200/50',
@@ -909,11 +1014,11 @@ function App() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-1.5">
                   {groupedOptions.map(({ group, options }) => (
                     <section key={group}>
-                      <div className="mb-2 flex items-center justify-between">
-                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-300">
+                      <div className="mb-1 flex items-center justify-between">
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-300">
                           {group}
                         </h3>
                         {group === 'Quick Bets' && !canBet && (
@@ -926,13 +1031,14 @@ function App() {
                         className={cx(
                           'grid gap-1.5',
                           group === 'Quick Bets' && 'grid-cols-2 sm:grid-cols-4',
-                          group === 'Totals' && 'grid-cols-4 sm:grid-cols-7',
+                          group === 'Totals' && 'grid-cols-7 xl:grid-cols-[repeat(14,minmax(0,1fr))]',
                           group === 'Singles' && 'grid-cols-3 sm:grid-cols-6',
                           (group === 'Doubles' || group === 'Triples') && 'grid-cols-3 sm:grid-cols-7',
                         )}
                       >
                         {options.map((option) => {
                           const disabled = !canBet || balance < selectedChip
+                          const theme = getBetTheme(option)
                           return (
                             <button
                               key={option.id}
@@ -940,19 +1046,35 @@ function App() {
                               disabled={disabled}
                               onClick={() => placeBet(option)}
                               className={cx(
-                                'group min-h-[54px] rounded-xl border p-2 text-left transition',
+                                'group min-h-[38px] rounded-xl border p-1.5 text-left shadow-lg transition duration-200',
                                 disabled
                                   ? 'cursor-not-allowed border-white/5 bg-white/[0.025] text-stone-500'
-                                  : 'border-white/10 bg-[#0d1712] text-stone-100 hover:-translate-y-0.5 hover:border-amber-200/50 hover:bg-[#142018] hover:shadow-lg hover:shadow-amber-400/10',
+                                  : cx(
+                                      'cursor-pointer hover:-translate-y-0.5 focus-visible:-translate-y-0.5',
+                                      theme.card,
+                                    ),
                               )}
                             >
-                              <span className="block text-sm font-black leading-tight text-white group-disabled:text-stone-500">
+                              <span
+                                className={cx(
+                                  'mb-1 block h-1 w-8 rounded-full',
+                                  group === 'Totals' && 'mb-0.5 h-0.5 w-7',
+                                  disabled ? 'bg-white/10' : theme.rail,
+                                )}
+                              />
+                              <span className="block text-xs font-black leading-tight text-white group-disabled:text-stone-500">
                                 {option.label}
                               </span>
                               <span className="mt-0.5 hidden text-[11px] leading-snug text-stone-400 2xl:block">
                                 {option.description}
                               </span>
-                              <span className="mt-1 inline-flex rounded-full bg-amber-300/10 px-1.5 py-0.5 text-[10px] font-black text-amber-100">
+                              <span
+                                className={cx(
+                                  'mt-1 inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-black',
+                                  group === 'Totals' && 'mt-0.5 px-1 py-0 text-[9px]',
+                                  disabled ? 'bg-white/5 text-stone-500' : theme.badge,
+                                )}
+                              >
                                 {option.payoutLabel}
                               </span>
                             </button>
@@ -964,41 +1086,41 @@ function App() {
                 </div>
               </div>
 
-              <aside className="flex min-h-0 flex-col gap-3">
+              <aside className="flex min-h-0 flex-col gap-2">
                 <section
                   className={cx(
-                    'rounded-3xl border p-3 shadow-xl shadow-black/20',
+                    'rounded-[1.35rem] border p-2.5 shadow-xl shadow-black/20',
                     summary
                       ? hasWon
-                        ? 'animate-[winPulse_900ms_ease-out] border-amber-200/35 bg-amber-300/10'
-                        : 'border-white/10 bg-white/[0.045]'
-                      : 'border-white/10 bg-white/[0.045]',
+                        ? 'animate-[winPulse_900ms_ease-out] border-amber-200/40 bg-amber-300/12'
+                        : 'border-white/10 bg-white/[0.05]'
+                      : 'border-white/10 bg-white/[0.05]',
                   )}
                 >
-                  <div className="mb-3 flex items-center justify-between">
+                  <div className="mb-2 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-100/60">
                         Result
                       </p>
-                      <h2 className="text-lg font-black text-white">Round summary</h2>
+                      <h2 className="text-base font-black text-white">Round summary</h2>
                     </div>
                     <Trophy className={hasWon ? 'text-amber-200' : 'text-stone-500'} />
                   </div>
 
                   {summary ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between rounded-2xl bg-black/30 p-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between rounded-2xl bg-black/30 p-2.5">
                         <span className="text-sm text-stone-400">Dice</span>
                         <span className="text-lg font-black text-white">
                           {result.join(' + ')} = {resultTotal}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="rounded-2xl bg-black/25 p-3">
+                        <div className="rounded-2xl bg-black/25 p-2.5">
                           <p className="text-stone-400">Staked</p>
                           <p className="font-black">{formatCredits(summary.totalStake)}</p>
                         </div>
-                        <div className="rounded-2xl bg-black/25 p-3">
+                        <div className="rounded-2xl bg-black/25 p-2.5">
                           <p className="text-stone-400">Paid</p>
                           <p className="font-black text-emerald-100">
                             {formatCredits(summary.totalPayout)}
@@ -1007,7 +1129,7 @@ function App() {
                       </div>
                       <p
                         className={cx(
-                          'rounded-2xl p-3 text-center text-lg font-black',
+                          'rounded-2xl p-2.5 text-center text-base font-black',
                           summary.net > 0
                             ? 'bg-amber-300 text-black'
                             : 'bg-white/[0.05] text-stone-300',
@@ -1021,29 +1143,29 @@ function App() {
                       </p>
                     </div>
                   ) : (
-                    <p className="rounded-2xl bg-black/25 p-3 text-sm leading-6 text-stone-400">
+                    <p className="rounded-2xl bg-black/25 p-2.5 text-sm leading-6 text-stone-400">
                       Bets open only during countdown while the casino cover is closed. The dice
                       reveal after lockdown.
                     </p>
                   )}
                 </section>
 
-                <section className="min-h-0 rounded-3xl border border-white/10 bg-white/[0.045] p-3 shadow-xl shadow-black/20">
-                  <div className="mb-3 flex items-center justify-between">
+                <section className="min-h-0 rounded-[1.35rem] border border-white/10 bg-white/[0.05] p-2.5 shadow-xl shadow-black/20">
+                  <div className="mb-2 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/60">
                         Slip
                       </p>
-                      <h2 className="text-lg font-black text-white">Current bets</h2>
+                      <h2 className="text-base font-black text-white">Current bets</h2>
                     </div>
                     <span className="rounded-full bg-emerald-300/10 px-3 py-1 text-xs font-black text-emerald-100">
                       {formatCredits(totalStaked)}
                     </span>
                   </div>
 
-                  <div className="max-h-[32vh] space-y-2 overflow-y-auto pr-1">
+                  <div className="max-h-[27vh] space-y-2 overflow-y-auto pr-1">
                     {bets.length === 0 ? (
-                      <p className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-stone-500">
+                      <p className="rounded-2xl border border-dashed border-white/10 p-3 text-sm text-stone-500">
                         Your bet slip is empty.
                       </p>
                     ) : (
@@ -1053,7 +1175,7 @@ function App() {
                           <div
                             key={bet.id}
                             className={cx(
-                              'flex items-center justify-between gap-3 rounded-2xl border p-3',
+                              'flex items-center justify-between gap-3 rounded-2xl border p-2.5',
                               outcome?.didWin
                                 ? 'border-amber-200/35 bg-amber-300/10'
                                 : outcome
@@ -1071,7 +1193,7 @@ function App() {
                               <button
                                 type="button"
                                 onClick={() => removeBet(bet.id)}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-stone-300 hover:border-red-300/50 hover:text-red-200"
+                                className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/10 text-stone-300 transition hover:border-red-300/50 hover:text-red-200"
                                 aria-label={`Remove ${bet.option.label}`}
                               >
                                 <X size={16} />
@@ -1130,7 +1252,7 @@ function App() {
             <button
               type="submit"
               disabled={!nameDraft.trim()}
-              className="mt-5 w-full rounded-2xl bg-amber-300 px-5 py-4 text-base font-black text-black transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-500"
+              className="mt-5 w-full cursor-pointer rounded-2xl bg-amber-300 px-5 py-4 text-base font-black text-black transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-500"
             >
               Enter table
             </button>
