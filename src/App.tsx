@@ -4,7 +4,6 @@ import {
   Dices,
   History,
   LockKeyhole,
-  Timer,
   Trophy,
   UserRound,
   X,
@@ -97,15 +96,6 @@ const exactTotalPayouts: Record<number, number> = {
   15: 18,
   16: 30,
   17: 60,
-}
-
-const phaseLabels: Record<GamePhase, string> = {
-  idle: 'Idle cooldown',
-  rolling: 'Start rolling',
-  countdown: 'Countdown',
-  lockdown: 'Lockdown',
-  reveal: 'Dice open',
-  settling: 'Settling',
 }
 
 const numberFormatter = new Intl.NumberFormat('en-US')
@@ -222,39 +212,6 @@ function formatCredits(value: number) {
   return numberFormatter.format(value)
 }
 
-function phaseDetail(phase: GamePhase) {
-  switch (phase) {
-    case 'idle':
-      return 'Cooling table'
-    case 'rolling':
-      return 'Dice rolling'
-    case 'countdown':
-      return 'Bets open'
-    case 'lockdown':
-      return 'Bets locked'
-    case 'reveal':
-      return 'Result open'
-    case 'settling':
-      return 'Paying table'
-  }
-}
-
-function phasePanelClass(phase: GamePhase) {
-  switch (phase) {
-    case 'lockdown':
-      return 'border-red-300/30 bg-red-500/10 text-red-100'
-    case 'countdown':
-      return 'border-emerald-200/20 bg-emerald-300/[0.08] text-emerald-100'
-    case 'rolling':
-      return 'border-amber-200/25 bg-amber-300/[0.08] text-amber-100'
-    case 'reveal':
-    case 'settling':
-      return 'border-amber-200/30 bg-amber-300/10 text-amber-100'
-    case 'idle':
-      return 'border-white/10 bg-white/[0.04] text-stone-200'
-  }
-}
-
 function randomDie(): DieValue {
   return (Math.floor(Math.random() * 6) + 1) as DieValue
 }
@@ -345,6 +302,36 @@ function createRoundRecord(
 
 function getBetId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
+function playCountdownTick(secondsLeft: number) {
+  try {
+    const audioWindow = window as Window &
+      typeof globalThis & { webkitAudioContext?: typeof AudioContext }
+    const AudioContextClass = window.AudioContext ?? audioWindow.webkitAudioContext
+    if (!AudioContextClass) return
+
+    const context = new AudioContextClass()
+    const oscillator = context.createOscillator()
+    const gain = context.createGain()
+    const now = context.currentTime
+    const isAccent = secondsLeft <= 3 || secondsLeft % 2 === 0
+
+    oscillator.type = isAccent ? 'square' : 'triangle'
+    oscillator.frequency.setValueAtTime(isAccent ? 760 : 520, now)
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(isAccent ? 0.12 : 0.075, now + 0.012)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12)
+    oscillator.connect(gain)
+    gain.connect(context.destination)
+    oscillator.start(now)
+    oscillator.stop(now + 0.13)
+    window.setTimeout(() => {
+      void context.close()
+    }, 180)
+  } catch (error) {
+    void error
+  }
 }
 
 function pipPositions(value: DieValue) {
@@ -498,18 +485,27 @@ function CasinoCover({ phase }: { phase: GamePhase }) {
   })
 
   return (
-    <group ref={groupRef} position={[0, 0.42, 0]}>
-      <RoundedBox args={[5.2, 1.35, 1.72]} radius={0.35} smoothness={9}>
+    <group ref={groupRef} position={[0, 0.42, 0]} scale={[1.72, 1, 0.72]}>
+      <mesh castShadow receiveShadow>
+        <cylinderGeometry args={[1.28, 1.72, 1.48, 64, 1, false]} />
         <meshStandardMaterial
-          color="#17110b"
-          roughness={0.38}
-          metalness={0.55}
-          emissive={phase === 'lockdown' ? '#3a0909' : '#0b1f16'}
-          emissiveIntensity={phase === 'lockdown' ? 0.18 : 0.08}
+          color="#4a2116"
+          roughness={0.5}
+          metalness={0.18}
+          emissive={phase === 'lockdown' ? '#4a0808' : '#1e1208'}
+          emissiveIntensity={phase === 'lockdown' ? 0.22 : 0.1}
         />
-      </RoundedBox>
-      <RoundedBox args={[1.2, 0.22, 0.38]} radius={0.12} smoothness={6} position={[0, 0.78, 0]}>
-        <meshStandardMaterial color="#d4a84c" roughness={0.34} metalness={0.8} />
+      </mesh>
+      <mesh position={[0, -0.76, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1, 0.78]}>
+        <torusGeometry args={[1.72, 0.055, 16, 64]} />
+        <meshStandardMaterial color="#d4a84c" roughness={0.3} metalness={0.75} />
+      </mesh>
+      <mesh position={[0, 0.74, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1, 0.78]}>
+        <torusGeometry args={[1.27, 0.055, 16, 64]} />
+        <meshStandardMaterial color="#f0c35c" roughness={0.28} metalness={0.8} />
+      </mesh>
+      <RoundedBox args={[0.62, 0.18, 0.34]} radius={0.08} smoothness={5} position={[0, 0.91, 0]}>
+        <meshStandardMaterial color="#f0c35c" roughness={0.28} metalness={0.82} />
       </RoundedBox>
     </group>
   )
@@ -518,15 +514,19 @@ function CasinoCover({ phase }: { phase: GamePhase }) {
 function DiceStage({
   phase,
   result,
+  secondsLeft,
   winning,
 }: {
   phase: GamePhase
   result: DiceResult
+  secondsLeft: number
   winning: boolean
 }) {
   const [displayValues, setDisplayValues] = useState<DiceResult>(result)
   const visibleValues = phase === 'rolling' ? displayValues : result
   const diceClosed = phase === 'countdown' || phase === 'lockdown'
+  const showCountdown = phase === 'countdown'
+  const urgentCountdown = showCountdown && secondsLeft <= 10
 
   useEffect(() => {
     if (phase === 'rolling') {
@@ -536,14 +536,26 @@ function DiceStage({
   }, [phase])
 
   return (
-    <div className="relative aspect-video overflow-hidden rounded-[1.75rem] border border-amber-200/20 bg-[radial-gradient(circle_at_50%_15%,rgba(245,183,86,0.22),transparent_28%),linear-gradient(145deg,#07140f,#101816_45%,#050607)] shadow-[0_35px_120px_rgba(0,0,0,0.7)]">
-      <div className="absolute inset-x-6 top-4 z-10 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.28em] text-amber-100/70">
+    <div className="relative h-full min-h-[140px] overflow-hidden rounded-[1.5rem] border border-amber-200/20 bg-[radial-gradient(circle_at_50%_15%,rgba(245,183,86,0.2),transparent_28%),linear-gradient(145deg,#07140f,#101816_45%,#050607)] shadow-[0_25px_80px_rgba(0,0,0,0.6)]">
+      <div className="absolute inset-x-5 top-3 z-10 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-100/70">
         <span>Live dice feed</span>
-        <span className={phase === 'lockdown' ? 'text-red-300' : 'text-emerald-200'}>
-          {phaseLabels[phase]}
-        </span>
       </div>
-      <Canvas camera={{ position: [0, 2.4, 6.2], fov: 42 }} shadows>
+      {showCountdown && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+          <div
+            className={cx(
+              'grid h-24 w-24 place-items-center rounded-full border bg-black/45 text-5xl font-black leading-none shadow-2xl backdrop-blur-sm transition',
+              urgentCountdown
+                ? 'animate-[countdownPunch_1s_ease-in-out_infinite] border-red-300 text-red-200 shadow-red-500/30'
+                : 'border-emerald-200/40 text-emerald-100 shadow-emerald-400/20',
+            )}
+            aria-label={`${secondsLeft} seconds remaining`}
+          >
+            {secondsLeft}
+          </div>
+        </div>
+      )}
+      <Canvas camera={{ position: [0, 2.1, 6.1], fov: 42 }} shadows>
         <color attach="background" args={['#06100d']} />
         <ambientLight intensity={0.8} />
         <spotLight
@@ -565,7 +577,7 @@ function DiceStage({
           <planeGeometry args={[8.5, 4]} />
           <meshStandardMaterial color="#073d2b" roughness={0.88} metalness={0.02} />
         </mesh>
-        <ContactShadows position={[0, -0.7, 0]} opacity={0.55} scale={7} blur={2.8} far={3} />
+        <ContactShadows position={[0, -0.7, 0]} opacity={0.5} scale={6} blur={2.6} far={3} />
         {winning && (
           <Sparkles
             count={90}
@@ -599,6 +611,7 @@ function App() {
   const [history, setHistory] = useState<RoundRecord[]>([])
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const betsRef = useRef(bets)
+  const lastTickSecondRef = useRef<number | null>(null)
 
   const groupedOptions = useMemo(
     () =>
@@ -617,6 +630,20 @@ function App() {
   useEffect(() => {
     betsRef.current = bets
   }, [bets])
+
+  useEffect(() => {
+    if (!nickname || phase !== 'countdown' || secondsLeft > 10 || secondsLeft < 1) {
+      if (phase !== 'countdown') {
+        lastTickSecondRef.current = null
+      }
+      return
+    }
+
+    if (lastTickSecondRef.current === secondsLeft) return
+
+    lastTickSecondRef.current = secondsLeft
+    playCountdownTick(secondsLeft)
+  }, [nickname, phase, secondsLeft])
 
   useEffect(() => {
     if (!nickname) return
@@ -732,20 +759,20 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#040706] text-stone-100">
+    <main className="h-screen overflow-hidden bg-[#040706] text-stone-100">
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_20%_5%,rgba(20,184,166,0.18),transparent_32%),radial-gradient(circle_at_86%_12%,rgba(251,191,36,0.14),transparent_28%),linear-gradient(135deg,#04130f,#090b0b_44%,#120b07)]" />
 
-      <section className="mx-auto flex min-h-screen w-full max-w-[1500px] flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <header className="relative z-50 flex flex-col gap-3 rounded-3xl border border-white/10 bg-black/35 p-3 shadow-2xl shadow-black/30 backdrop-blur md:flex-row md:items-center md:justify-between">
+      <section className="mx-auto flex h-screen w-full max-w-[1500px] flex-col gap-3 px-3 py-3 sm:px-4 lg:px-5">
+        <header className="relative z-50 flex flex-col gap-3 rounded-3xl border border-white/10 bg-black/35 p-2.5 shadow-2xl shadow-black/30 backdrop-blur md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-200/20">
-              <Dices size={24} />
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-200/20">
+              <Dices size={23} />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.26em] text-amber-100/60">
                 Three Dice Studio
               </p>
-              <h1 className="text-xl font-black tracking-normal text-white sm:text-2xl">
+              <h1 className="text-lg font-black tracking-normal text-white sm:text-xl">
                 Broadcast Dice Table
               </h1>
             </div>
@@ -765,20 +792,6 @@ function App() {
             <div className="min-w-[110px] flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 md:flex-none">
               <p className="text-xs text-stone-400">Round</p>
               <p className="font-bold text-white">#{roundNumber}</p>
-            </div>
-            <div
-              className={cx(
-                'min-w-[190px] flex-1 rounded-2xl border px-3 py-2 md:flex-none',
-                phasePanelClass(phase),
-              )}
-            >
-              <p className="flex items-center gap-1 text-xs text-stone-400">
-                <Timer size={13} /> Timer
-              </p>
-              <p className="font-bold">
-                {phaseLabels[phase]} - {secondsLeft}s
-              </p>
-              <p className="text-xs font-semibold text-stone-400">{phaseDetail(phase)}</p>
             </div>
             <div className="relative">
               <button
@@ -858,18 +871,19 @@ function App() {
         </header>
 
         <div className="grid flex-1 gap-5">
-          <section className="flex min-w-0 flex-col gap-5">
-            <div className="rounded-[2rem] border border-white/10 bg-black/30 p-2 shadow-2xl shadow-black/40">
+          <section className="flex min-h-0 min-w-0 flex-col gap-3">
+            <div className="h-[20vh] min-h-[140px] max-h-[220px] rounded-[1.75rem] border border-white/10 bg-black/30 p-2 shadow-2xl shadow-black/40">
               <DiceStage
                 phase={phase}
                 result={result}
+                secondsLeft={secondsLeft}
                 winning={hasWon && (phase === 'reveal' || phase === 'settling')}
               />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.045] p-4 shadow-xl shadow-black/20">
-                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_310px]">
+              <div className="min-h-0 rounded-3xl border border-white/10 bg-white/[0.045] p-3 shadow-xl shadow-black/20">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-200/65">
                       Pick your chip
@@ -883,7 +897,7 @@ function App() {
                         type="button"
                         onClick={() => setSelectedChip(chip)}
                         className={cx(
-                          'min-h-10 rounded-full border px-4 text-sm font-black transition',
+                          'min-h-9 rounded-full border px-3 text-xs font-black transition',
                           selectedChip === chip
                             ? 'border-amber-200 bg-amber-300 text-black shadow-lg shadow-amber-300/20'
                             : 'border-white/10 bg-black/35 text-stone-200 hover:border-amber-200/50',
@@ -895,11 +909,11 @@ function App() {
                   </div>
                 </div>
 
-                <div className="space-y-5">
+                <div className="space-y-3">
                   {groupedOptions.map(({ group, options }) => (
                     <section key={group}>
                       <div className="mb-2 flex items-center justify-between">
-                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-stone-300">
+                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-stone-300">
                           {group}
                         </h3>
                         {group === 'Quick Bets' && !canBet && (
@@ -910,10 +924,11 @@ function App() {
                       </div>
                       <div
                         className={cx(
-                          'grid gap-2',
-                          group === 'Totals'
-                            ? 'grid-cols-4 sm:grid-cols-7'
-                            : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4',
+                          'grid gap-1.5',
+                          group === 'Quick Bets' && 'grid-cols-2 sm:grid-cols-4',
+                          group === 'Totals' && 'grid-cols-4 sm:grid-cols-7',
+                          group === 'Singles' && 'grid-cols-3 sm:grid-cols-6',
+                          (group === 'Doubles' || group === 'Triples') && 'grid-cols-3 sm:grid-cols-7',
                         )}
                       >
                         {options.map((option) => {
@@ -925,19 +940,19 @@ function App() {
                               disabled={disabled}
                               onClick={() => placeBet(option)}
                               className={cx(
-                                'group min-h-[86px] rounded-2xl border p-3 text-left transition',
+                                'group min-h-[54px] rounded-xl border p-2 text-left transition',
                                 disabled
                                   ? 'cursor-not-allowed border-white/5 bg-white/[0.025] text-stone-500'
                                   : 'border-white/10 bg-[#0d1712] text-stone-100 hover:-translate-y-0.5 hover:border-amber-200/50 hover:bg-[#142018] hover:shadow-lg hover:shadow-amber-400/10',
                               )}
                             >
-                              <span className="block text-base font-black text-white group-disabled:text-stone-500">
+                              <span className="block text-sm font-black leading-tight text-white group-disabled:text-stone-500">
                                 {option.label}
                               </span>
-                              <span className="mt-1 block text-xs leading-snug text-stone-400">
+                              <span className="mt-0.5 hidden text-[11px] leading-snug text-stone-400 2xl:block">
                                 {option.description}
                               </span>
-                              <span className="mt-2 inline-flex rounded-full bg-amber-300/10 px-2 py-1 text-xs font-black text-amber-100">
+                              <span className="mt-1 inline-flex rounded-full bg-amber-300/10 px-1.5 py-0.5 text-[10px] font-black text-amber-100">
                                 {option.payoutLabel}
                               </span>
                             </button>
@@ -949,10 +964,10 @@ function App() {
                 </div>
               </div>
 
-              <aside className="flex flex-col gap-4">
+              <aside className="flex min-h-0 flex-col gap-3">
                 <section
                   className={cx(
-                    'rounded-3xl border p-4 shadow-xl shadow-black/20',
+                    'rounded-3xl border p-3 shadow-xl shadow-black/20',
                     summary
                       ? hasWon
                         ? 'animate-[winPulse_900ms_ease-out] border-amber-200/35 bg-amber-300/10'
@@ -965,7 +980,7 @@ function App() {
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-100/60">
                         Result
                       </p>
-                      <h2 className="text-xl font-black text-white">Round summary</h2>
+                      <h2 className="text-lg font-black text-white">Round summary</h2>
                     </div>
                     <Trophy className={hasWon ? 'text-amber-200' : 'text-stone-500'} />
                   </div>
@@ -1006,27 +1021,27 @@ function App() {
                       </p>
                     </div>
                   ) : (
-                    <p className="rounded-2xl bg-black/25 p-4 text-sm leading-6 text-stone-400">
+                    <p className="rounded-2xl bg-black/25 p-3 text-sm leading-6 text-stone-400">
                       Bets open only during countdown while the casino cover is closed. The dice
                       reveal after lockdown.
                     </p>
                   )}
                 </section>
 
-                <section className="rounded-3xl border border-white/10 bg-white/[0.045] p-4 shadow-xl shadow-black/20">
+                <section className="min-h-0 rounded-3xl border border-white/10 bg-white/[0.045] p-3 shadow-xl shadow-black/20">
                   <div className="mb-3 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/60">
                         Slip
                       </p>
-                      <h2 className="text-xl font-black text-white">Current bets</h2>
+                      <h2 className="text-lg font-black text-white">Current bets</h2>
                     </div>
                     <span className="rounded-full bg-emerald-300/10 px-3 py-1 text-xs font-black text-emerald-100">
                       {formatCredits(totalStaked)}
                     </span>
                   </div>
 
-                  <div className="max-h-[310px] space-y-2 overflow-y-auto pr-1">
+                  <div className="max-h-[32vh] space-y-2 overflow-y-auto pr-1">
                     {bets.length === 0 ? (
                       <p className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-stone-500">
                         Your bet slip is empty.

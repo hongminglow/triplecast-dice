@@ -11,8 +11,10 @@
 
 - Show a required nickname modal on first load; it cannot be dismissed until a nickname is entered.
 - Start each player with `5000` credits.
-- Display an app bar with nickname, balance, round number, current phase, countdown, and a game history icon.
-- Main screen has a large 16:9 TV-style dice stage showing three animated 3D dice.
+- Display an app bar with nickname, balance, round number, and a game history icon.
+- Main screen has a compact top TV-style dice stage showing three animated 3D dice.
+- Countdown appears cinematically over the dice section during betting.
+- The final `10s` countdown turns red, scales up, and plays a tick-tock sound cue.
 - Dice roll only during the start rolling phase, then stop under a casino-style cover while bets are open.
 - Game auto-advances through rounds without user action.
 
@@ -76,7 +78,7 @@
 
 ## Responsive Requirements
 
-- Desktop: app bar on top, TV screen as the main visual anchor, betting board/slip arranged beside or below depending width.
+- Desktop: app bar on top, compact TV strip, betting board, result, and slip should fit in one viewport.
 - Mobile: TV screen first, compact top bar, betting groups in scrollable sections, slip below the board, and history in the app-bar popover.
 - Text must not overlap, overflow buttons, or hide controls on small screens.
 

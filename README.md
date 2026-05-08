@@ -8,8 +8,10 @@ This is not a real-money betting product. Everything is client-side and session-
 
 - Required nickname modal before entering the table.
 - Starting balance of `5,000` session credits.
-- Top app bar with nickname, balance, round number, phase, countdown, and a history icon.
-- Large 16:9 TV-style Three.js dice stage with three animated dice.
+- Top app bar with nickname, balance, round number, and a history icon.
+- Compact top TV-style Three.js dice stage sized as a broadcast strip instead of a full hero.
+- Cinematic countdown displayed directly over the dice area during betting.
+- Red pulse and tick-tock sound cue during the final `10s` of countdown.
 - Casino-style cover that closes over the dice while bets are open.
 - Betting board with chip values `10`, `50`, `100`, `500`, and `1000`.
 - Bet slip showing current bets, total stake, removable bets before lockdown, and settlement results.
@@ -138,3 +140,4 @@ http://127.0.0.1:5173/
 - `SPEC.md` contains the tracking spec used for this implementation.
 - The game intentionally does not use backend storage, auth, wallets, or account state.
 - The current version uses procedural 3D dice and code-native UI, without generated raster assets.
+- The main desktop table is designed to fit in one viewport so players can see dice, result, slip, and betting options together.
