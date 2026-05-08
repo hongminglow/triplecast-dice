@@ -1,5 +1,10 @@
-import { Canvas, useFrame } from '@react-three/fiber'
-import { ContactShadows, Environment, RoundedBox, Sparkles } from '@react-three/drei'
+import { Canvas, useFrame } from "@react-three/fiber";
+import {
+  ContactShadows,
+  Environment,
+  RoundedBox,
+  Sparkles,
+} from "@react-three/drei";
 import {
   Dices,
   History,
@@ -7,79 +12,91 @@ import {
   Trophy,
   UserRound,
   X,
-} from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
-import { MathUtils } from 'three'
-import type { Group } from 'three'
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { MathUtils } from "three";
+import type { Group } from "three";
 
-type GamePhase = 'idle' | 'rolling' | 'countdown' | 'lockdown' | 'reveal' | 'settling'
-type DieValue = 1 | 2 | 3 | 4 | 5 | 6
-type DiceResult = [DieValue, DieValue, DieValue]
-type BetGroup = 'Quick Bets' | 'Totals' | 'Singles' | 'Doubles' | 'Triples'
+type GamePhase =
+  | "idle"
+  | "rolling"
+  | "countdown"
+  | "lockdown"
+  | "reveal"
+  | "settling";
+type DieValue = 1 | 2 | 3 | 4 | 5 | 6;
+type DiceResult = [DieValue, DieValue, DieValue];
+type BetGroup = "Quick Bets" | "Totals" | "Singles" | "Doubles" | "Triples";
 type BetKind =
-  | 'small'
-  | 'big'
-  | 'odd'
-  | 'even'
-  | 'single'
-  | 'anyDouble'
-  | 'specificDouble'
-  | 'anyTriple'
-  | 'specificTriple'
-  | 'exactTotal'
+  | "small"
+  | "big"
+  | "odd"
+  | "even"
+  | "single"
+  | "anyDouble"
+  | "specificDouble"
+  | "anyTriple"
+  | "specificTriple"
+  | "exactTotal";
 
 type BetOption = {
-  id: string
-  label: string
-  group: BetGroup
-  description: string
-  payoutLabel: string
-  kind: BetKind
-  target?: number
-}
+  id: string;
+  label: string;
+  group: BetGroup;
+  description: string;
+  payoutLabel: string;
+  kind: BetKind;
+  target?: number;
+};
 
 type PlacedBet = {
-  id: string
-  option: BetOption
-  stake: number
-}
+  id: string;
+  option: BetOption;
+  stake: number;
+};
 
 type BetOutcome = {
-  bet: PlacedBet
-  didWin: boolean
-  multiplier: number
-  payout: number
-  profit: number
-}
+  bet: PlacedBet;
+  didWin: boolean;
+  multiplier: number;
+  payout: number;
+  profit: number;
+};
 
 type PayoutSummary = {
-  totalStake: number
-  totalPayout: number
-  net: number
-  outcomes: BetOutcome[]
-}
+  totalStake: number;
+  totalPayout: number;
+  net: number;
+  outcomes: BetOutcome[];
+};
 
 type RoundRecord = {
-  round: number
-  result: DiceResult
-  total: number
-  betCount: number
-  totalStake: number
-  totalPayout: number
-  net: number
-}
+  round: number;
+  result: DiceResult;
+  total: number;
+  betCount: number;
+  totalStake: number;
+  totalPayout: number;
+  net: number;
+};
 
-const STARTING_BALANCE = 5000
-const IDLE_SECONDS = 5
-const ROLLING_SECONDS = 10
-const COUNTDOWN_SECONDS = 60
-const LOCKDOWN_SECONDS = 4
-const REVEAL_SECONDS = 3
-const SETTLE_SECONDS = 5
-const CHIP_VALUES = [10, 50, 100, 500, 1000]
-const BET_GROUPS: BetGroup[] = ['Quick Bets', 'Totals', 'Singles', 'Doubles', 'Triples']
-const DIE_VALUES: DieValue[] = [1, 2, 3, 4, 5, 6]
+const STARTING_BALANCE = 5000;
+const IDLE_SECONDS = 5;
+const ROLLING_SECONDS = 10;
+const COUNTDOWN_SECONDS = 60;
+const LOCKDOWN_SECONDS = 4;
+const REVEAL_SECONDS = 3;
+const SETTLE_SECONDS = 5;
+const CHIP_VALUES = [10, 50, 100, 500, 1000];
+const BET_GROUPS: BetGroup[] = [
+  "Quick Bets",
+  "Totals",
+  "Singles",
+  "Doubles",
+  "Triples",
+];
+const DIE_VALUES: DieValue[] = [1, 2, 3, 4, 5, 6];
 
 const exactTotalPayouts: Record<number, number> = {
   4: 60,
@@ -96,266 +113,273 @@ const exactTotalPayouts: Record<number, number> = {
   15: 18,
   16: 30,
   17: 60,
-}
+};
 
-const numberFormatter = new Intl.NumberFormat('en-US')
+const numberFormatter = new Intl.NumberFormat("en-US");
 
 function cx(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(' ')
+  return classes.filter(Boolean).join(" ");
 }
 
 function createBetOptions(): BetOption[] {
   const quickBets: BetOption[] = [
     {
-      id: 'small',
-      label: 'Small',
-      group: 'Quick Bets',
-      description: '4-10, no triples.',
-      payoutLabel: '1:1',
-      kind: 'small',
+      id: "small",
+      label: "Small",
+      group: "Quick Bets",
+      description: "4-10, no triples.",
+      payoutLabel: "1:1",
+      kind: "small",
     },
     {
-      id: 'big',
-      label: 'Big',
-      group: 'Quick Bets',
-      description: '11-17, no triples.',
-      payoutLabel: '1:1',
-      kind: 'big',
+      id: "big",
+      label: "Big",
+      group: "Quick Bets",
+      description: "11-17, no triples.",
+      payoutLabel: "1:1",
+      kind: "big",
     },
     {
-      id: 'odd',
-      label: 'Odd',
-      group: 'Quick Bets',
-      description: 'Odd total.',
-      payoutLabel: '1:1',
-      kind: 'odd',
+      id: "odd",
+      label: "Odd",
+      group: "Quick Bets",
+      description: "Odd total.",
+      payoutLabel: "1:1",
+      kind: "odd",
     },
     {
-      id: 'even',
-      label: 'Even',
-      group: 'Quick Bets',
-      description: 'Even total.',
-      payoutLabel: '1:1',
-      kind: 'even',
+      id: "even",
+      label: "Even",
+      group: "Quick Bets",
+      description: "Even total.",
+      payoutLabel: "1:1",
+      kind: "even",
     },
-  ]
+  ];
 
   const totals = Array.from({ length: 14 }, (_, index) => {
-    const total = index + 4
+    const total = index + 4;
     return {
       id: `total-${total}`,
       label: `${total}`,
-      group: 'Totals' as const,
-      description: total <= 5 || total >= 16 ? 'Rare edge hit.' : 'Hit this total.',
+      group: "Totals" as const,
+      description:
+        total <= 5 || total >= 16 ? "Rare edge hit." : "Hit this total.",
       payoutLabel: `${exactTotalPayouts[total]}:1`,
-      kind: 'exactTotal' as const,
+      kind: "exactTotal" as const,
       target: total,
-    }
-  })
+    };
+  });
 
   const singles = DIE_VALUES.map((value) => ({
-      id: `single-${value}`,
-      label: `Single ${value}`,
-      group: 'Singles' as const,
-      description: 'Pays per match.',
-    payoutLabel: '1x-3x',
-    kind: 'single' as const,
+    id: `single-${value}`,
+    label: `Single ${value}`,
+    group: "Singles" as const,
+    description: "Pays per match.",
+    payoutLabel: "1x-3x",
+    kind: "single" as const,
     target: value,
-  }))
+  }));
 
   const doubles: BetOption[] = [
     {
-      id: 'any-double',
-      label: 'Any double',
-      group: 'Doubles',
-      description: 'Any pair.',
-      payoutLabel: '3:1',
-      kind: 'anyDouble',
+      id: "any-double",
+      label: "Any double",
+      group: "Doubles",
+      description: "Any pair.",
+      payoutLabel: "3:1",
+      kind: "anyDouble",
     },
     ...DIE_VALUES.map((value) => ({
       id: `double-${value}`,
       label: `${value}-${value}`,
-      group: 'Doubles' as const,
+      group: "Doubles" as const,
       description: `Pair of ${value}.`,
-      payoutLabel: '8:1',
-      kind: 'specificDouble' as const,
+      payoutLabel: "8:1",
+      kind: "specificDouble" as const,
       target: value,
     })),
-  ]
+  ];
 
   const triples: BetOption[] = [
     {
-      id: 'any-triple',
-      label: 'Any triple',
-      group: 'Triples',
-      description: 'Any triple.',
-      payoutLabel: '24:1',
-      kind: 'anyTriple',
+      id: "any-triple",
+      label: "Any triple",
+      group: "Triples",
+      description: "Any triple.",
+      payoutLabel: "24:1",
+      kind: "anyTriple",
     },
     ...DIE_VALUES.map((value) => ({
       id: `triple-${value}`,
       label: `${value}-${value}-${value}`,
-      group: 'Triples' as const,
+      group: "Triples" as const,
       description: `Triple ${value}.`,
-      payoutLabel: '150:1',
-      kind: 'specificTriple' as const,
+      payoutLabel: "150:1",
+      kind: "specificTriple" as const,
       target: value,
     })),
-  ]
+  ];
 
-  return [...quickBets, ...totals, ...singles, ...doubles, ...triples]
+  return [...quickBets, ...totals, ...singles, ...doubles, ...triples];
 }
 
-const BET_OPTIONS = createBetOptions()
+const BET_OPTIONS = createBetOptions();
 
 function formatCredits(value: number) {
-  return numberFormatter.format(value)
+  return numberFormatter.format(value);
 }
 
 function getBetTheme(option: BetOption) {
-  if (option.kind === 'small') {
+  if (option.kind === "small") {
     return {
-      rail: 'bg-emerald-300',
-      card:
-        'border-emerald-200/30 bg-gradient-to-br from-emerald-500/24 via-[#11291f] to-[#07110d] text-emerald-50 hover:border-emerald-100/70 hover:shadow-emerald-300/25',
-      badge: 'bg-emerald-200 text-emerald-950',
-    }
+      rail: "bg-emerald-300",
+      card: "border-emerald-200/30 bg-gradient-to-br from-emerald-500/24 via-[#11291f] to-[#07110d] text-emerald-50 hover:border-emerald-100/70 hover:shadow-emerald-300/25",
+      badge: "bg-emerald-200 text-emerald-950",
+    };
   }
 
-  if (option.kind === 'big') {
+  if (option.kind === "big") {
     return {
-      rail: 'bg-rose-300',
-      card:
-        'border-rose-200/30 bg-gradient-to-br from-rose-500/24 via-[#301417] to-[#100707] text-rose-50 hover:border-rose-100/70 hover:shadow-rose-300/25',
-      badge: 'bg-rose-200 text-rose-950',
-    }
+      rail: "bg-rose-300",
+      card: "border-rose-200/30 bg-gradient-to-br from-rose-500/24 via-[#301417] to-[#100707] text-rose-50 hover:border-rose-100/70 hover:shadow-rose-300/25",
+      badge: "bg-rose-200 text-rose-950",
+    };
   }
 
-  if (option.kind === 'odd') {
+  if (option.kind === "odd") {
     return {
-      rail: 'bg-fuchsia-300',
-      card:
-        'border-fuchsia-200/30 bg-gradient-to-br from-fuchsia-500/24 via-[#29152f] to-[#0c0710] text-fuchsia-50 hover:border-fuchsia-100/70 hover:shadow-fuchsia-300/25',
-      badge: 'bg-fuchsia-200 text-fuchsia-950',
-    }
+      rail: "bg-fuchsia-300",
+      card: "border-fuchsia-200/30 bg-gradient-to-br from-fuchsia-500/24 via-[#29152f] to-[#0c0710] text-fuchsia-50 hover:border-fuchsia-100/70 hover:shadow-fuchsia-300/25",
+      badge: "bg-fuchsia-200 text-fuchsia-950",
+    };
   }
 
-  if (option.kind === 'even') {
+  if (option.kind === "even") {
     return {
-      rail: 'bg-cyan-300',
-      card:
-        'border-cyan-200/30 bg-gradient-to-br from-cyan-500/24 via-[#102832] to-[#061014] text-cyan-50 hover:border-cyan-100/70 hover:shadow-cyan-300/25',
-      badge: 'bg-cyan-200 text-cyan-950',
-    }
+      rail: "bg-cyan-300",
+      card: "border-cyan-200/30 bg-gradient-to-br from-cyan-500/24 via-[#102832] to-[#061014] text-cyan-50 hover:border-cyan-100/70 hover:shadow-cyan-300/25",
+      badge: "bg-cyan-200 text-cyan-950",
+    };
   }
 
-  if (option.kind === 'single') {
+  if (option.kind === "single") {
     return {
-      rail: 'bg-lime-300',
-      card:
-        'border-lime-200/25 bg-gradient-to-br from-lime-400/18 via-[#1f2910] to-[#090f06] text-lime-50 hover:border-lime-100/60 hover:shadow-lime-300/20',
-      badge: 'bg-lime-200 text-lime-950',
-    }
+      rail: "bg-lime-300",
+      card: "border-lime-200/25 bg-gradient-to-br from-lime-400/18 via-[#1f2910] to-[#090f06] text-lime-50 hover:border-lime-100/60 hover:shadow-lime-300/20",
+      badge: "bg-lime-200 text-lime-950",
+    };
   }
 
-  if (option.kind === 'anyDouble' || option.kind === 'specificDouble') {
+  if (option.kind === "anyDouble" || option.kind === "specificDouble") {
     return {
-      rail: 'bg-amber-300',
-      card:
-        'border-amber-200/28 bg-gradient-to-br from-amber-400/20 via-[#2d210d] to-[#110b05] text-amber-50 hover:border-amber-100/70 hover:shadow-amber-300/24',
-      badge: 'bg-amber-200 text-amber-950',
-    }
+      rail: "bg-amber-300",
+      card: "border-amber-200/28 bg-gradient-to-br from-amber-400/20 via-[#2d210d] to-[#110b05] text-amber-50 hover:border-amber-100/70 hover:shadow-amber-300/24",
+      badge: "bg-amber-200 text-amber-950",
+    };
   }
 
-  if (option.kind === 'anyTriple' || option.kind === 'specificTriple') {
+  if (option.kind === "anyTriple" || option.kind === "specificTriple") {
     return {
-      rail: 'bg-pink-300',
-      card:
-        'border-pink-200/28 bg-gradient-to-br from-pink-500/22 via-[#311126] to-[#120711] text-pink-50 hover:border-pink-100/70 hover:shadow-pink-300/24',
-      badge: 'bg-pink-200 text-pink-950',
-    }
+      rail: "bg-pink-300",
+      card: "border-pink-200/28 bg-gradient-to-br from-pink-500/22 via-[#311126] to-[#120711] text-pink-50 hover:border-pink-100/70 hover:shadow-pink-300/24",
+      badge: "bg-pink-200 text-pink-950",
+    };
   }
 
-  const edgeTotal = option.target === 4 || option.target === 5 || option.target === 16 || option.target === 17
+  const edgeTotal =
+    option.target === 4 ||
+    option.target === 5 ||
+    option.target === 16 ||
+    option.target === 17;
   return {
-    rail: edgeTotal ? 'bg-yellow-200' : 'bg-sky-300',
+    rail: edgeTotal ? "bg-yellow-200" : "bg-sky-300",
     card: edgeTotal
-      ? 'border-yellow-200/30 bg-gradient-to-br from-yellow-300/20 via-[#2d260d] to-[#111006] text-yellow-50 hover:border-yellow-100/70 hover:shadow-yellow-300/24'
-      : 'border-sky-200/25 bg-gradient-to-br from-sky-400/18 via-[#112239] to-[#061019] text-sky-50 hover:border-sky-100/60 hover:shadow-sky-300/20',
-    badge: edgeTotal ? 'bg-yellow-100 text-yellow-950' : 'bg-sky-200 text-sky-950',
-  }
+      ? "border-yellow-200/30 bg-gradient-to-br from-yellow-300/20 via-[#2d260d] to-[#111006] text-yellow-50 hover:border-yellow-100/70 hover:shadow-yellow-300/24"
+      : "border-sky-200/25 bg-gradient-to-br from-sky-400/18 via-[#112239] to-[#061019] text-sky-50 hover:border-sky-100/60 hover:shadow-sky-300/20",
+    badge: edgeTotal
+      ? "bg-yellow-100 text-yellow-950"
+      : "bg-sky-200 text-sky-950",
+  };
 }
 
 function randomDie(): DieValue {
-  return (Math.floor(Math.random() * 6) + 1) as DieValue
+  return (Math.floor(Math.random() * 6) + 1) as DieValue;
 }
 
 function randomDice(): DiceResult {
-  return [randomDie(), randomDie(), randomDie()]
+  return [randomDie(), randomDie(), randomDie()];
 }
 
 function totalDice(result: DiceResult) {
-  return result[0] + result[1] + result[2]
+  return result[0] + result[1] + result[2];
 }
 
 function getCounts(result: DiceResult) {
-  return DIE_VALUES.map((value) => result.filter((die) => die === value).length)
+  return DIE_VALUES.map(
+    (value) => result.filter((die) => die === value).length,
+  );
 }
 
 function hasTriple(result: DiceResult) {
-  return result[0] === result[1] && result[1] === result[2]
+  return result[0] === result[1] && result[1] === result[2];
 }
 
 function countTarget(result: DiceResult, target: number) {
-  return result.filter((die) => die === target).length
+  return result.filter((die) => die === target).length;
 }
 
 function evaluateBet(option: BetOption, result: DiceResult) {
-  const total = totalDice(result)
-  const counts = getCounts(result)
-  const triple = hasTriple(result)
+  const total = totalDice(result);
+  const counts = getCounts(result);
+  const triple = hasTriple(result);
 
   switch (option.kind) {
-    case 'small':
-      return !triple && total >= 4 && total <= 10 ? 1 : 0
-    case 'big':
-      return !triple && total >= 11 && total <= 17 ? 1 : 0
-    case 'odd':
-      return total % 2 === 1 ? 1 : 0
-    case 'even':
-      return total % 2 === 0 ? 1 : 0
-    case 'single':
-      return option.target ? countTarget(result, option.target) : 0
-    case 'anyDouble':
-      return counts.some((count) => count >= 2) ? 3 : 0
-    case 'specificDouble':
-      return option.target && countTarget(result, option.target) >= 2 ? 8 : 0
-    case 'anyTriple':
-      return triple ? 24 : 0
-    case 'specificTriple':
-      return option.target && countTarget(result, option.target) === 3 ? 150 : 0
-    case 'exactTotal':
-      return option.target === total ? exactTotalPayouts[total] ?? 0 : 0
+    case "small":
+      return !triple && total >= 4 && total <= 10 ? 1 : 0;
+    case "big":
+      return !triple && total >= 11 && total <= 17 ? 1 : 0;
+    case "odd":
+      return total % 2 === 1 ? 1 : 0;
+    case "even":
+      return total % 2 === 0 ? 1 : 0;
+    case "single":
+      return option.target ? countTarget(result, option.target) : 0;
+    case "anyDouble":
+      return counts.some((count) => count >= 2) ? 3 : 0;
+    case "specificDouble":
+      return option.target && countTarget(result, option.target) >= 2 ? 8 : 0;
+    case "anyTriple":
+      return triple ? 24 : 0;
+    case "specificTriple":
+      return option.target && countTarget(result, option.target) === 3
+        ? 150
+        : 0;
+    case "exactTotal":
+      return option.target === total ? (exactTotalPayouts[total] ?? 0) : 0;
   }
 }
 
 function settleBets(bets: PlacedBet[], result: DiceResult): PayoutSummary {
   const outcomes = bets.map((bet) => {
-    const multiplier = evaluateBet(bet.option, result)
-    const didWin = multiplier > 0
-    const profit = didWin ? bet.stake * multiplier : -bet.stake
-    const payout = didWin ? bet.stake + bet.stake * multiplier : 0
-    return { bet, didWin, multiplier, payout, profit }
-  })
-  const totalStake = bets.reduce((sum, bet) => sum + bet.stake, 0)
-  const totalPayout = outcomes.reduce((sum, outcome) => sum + outcome.payout, 0)
+    const multiplier = evaluateBet(bet.option, result);
+    const didWin = multiplier > 0;
+    const profit = didWin ? bet.stake * multiplier : -bet.stake;
+    const payout = didWin ? bet.stake + bet.stake * multiplier : 0;
+    return { bet, didWin, multiplier, payout, profit };
+  });
+  const totalStake = bets.reduce((sum, bet) => sum + bet.stake, 0);
+  const totalPayout = outcomes.reduce(
+    (sum, outcome) => sum + outcome.payout,
+    0,
+  );
 
   return {
     totalStake,
     totalPayout,
     net: totalPayout - totalStake,
     outcomes,
-  }
+  };
 }
 
 function createRoundRecord(
@@ -371,47 +395,27 @@ function createRoundRecord(
     totalStake: summary.totalStake,
     totalPayout: summary.totalPayout,
     net: summary.net,
-  }
+  };
 }
 
 function getBetId() {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
-function playCountdownTick(secondsLeft: number) {
+function playCountdownTick() {
   try {
-    const audioWindow = window as Window &
-      typeof globalThis & { webkitAudioContext?: typeof AudioContext }
-    const AudioContextClass = window.AudioContext ?? audioWindow.webkitAudioContext
-    if (!AudioContextClass) return
-
-    const context = new AudioContextClass()
-    const oscillator = context.createOscillator()
-    const gain = context.createGain()
-    const now = context.currentTime
-    const isAccent = secondsLeft <= 3 || secondsLeft % 2 === 0
-
-    oscillator.type = isAccent ? 'square' : 'triangle'
-    oscillator.frequency.setValueAtTime(isAccent ? 760 : 520, now)
-    gain.gain.setValueAtTime(0.0001, now)
-    gain.gain.exponentialRampToValueAtTime(isAccent ? 0.12 : 0.075, now + 0.012)
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12)
-    oscillator.connect(gain)
-    gain.connect(context.destination)
-    oscillator.start(now)
-    oscillator.stop(now + 0.13)
-    window.setTimeout(() => {
-      void context.close()
-    }, 180)
+    const audio = new Audio("/assets/countdown-chime.mp3");
+    audio.volume = 0.45;
+    void audio.play();
   } catch (error) {
-    void error
+    void error;
   }
 }
 
 function pipPositions(value: DieValue) {
-  const near = 0.28
-  const far = -0.28
-  const center = 0
+  const near = 0.28;
+  const far = -0.28;
+  const center = 0;
   const positions: Record<DieValue, Array<[number, number]>> = {
     1: [[center, center]],
     2: [
@@ -444,8 +448,8 @@ function pipPositions(value: DieValue) {
       [far, far],
       [near, far],
     ],
-  }
-  return positions[value]
+  };
+  return positions[value];
 }
 
 const faceRotations: Record<DieValue, [number, number, number]> = {
@@ -455,22 +459,38 @@ const faceRotations: Record<DieValue, [number, number, number]> = {
   4: [0, Math.PI / 2, 0],
   5: [-Math.PI / 2, 0, 0],
   6: [0, Math.PI, 0],
-}
+};
 
 type PipFace = {
-  value: DieValue
-  rotation: [number, number, number]
-  position: (x: number, y: number) => [number, number, number]
-}
+  value: DieValue;
+  rotation: [number, number, number];
+  position: (x: number, y: number) => [number, number, number];
+};
 
 const pipFaces: PipFace[] = [
   { value: 1, rotation: [0, 0, 0], position: (x, y) => [x, y, 0.584] },
   { value: 6, rotation: [0, Math.PI, 0], position: (x, y) => [-x, y, -0.584] },
-  { value: 3, rotation: [0, Math.PI / 2, 0], position: (x, y) => [0.584, y, -x] },
-  { value: 4, rotation: [0, -Math.PI / 2, 0], position: (x, y) => [-0.584, y, x] },
-  { value: 2, rotation: [-Math.PI / 2, 0, 0], position: (x, y) => [x, 0.584, -y] },
-  { value: 5, rotation: [Math.PI / 2, 0, 0], position: (x, y) => [x, -0.584, y] },
-]
+  {
+    value: 3,
+    rotation: [0, Math.PI / 2, 0],
+    position: (x, y) => [0.584, y, -x],
+  },
+  {
+    value: 4,
+    rotation: [0, -Math.PI / 2, 0],
+    position: (x, y) => [-0.584, y, x],
+  },
+  {
+    value: 2,
+    rotation: [-Math.PI / 2, 0, 0],
+    position: (x, y) => [x, 0.584, -y],
+  },
+  {
+    value: 5,
+    rotation: [Math.PI / 2, 0, 0],
+    position: (x, y) => [x, -0.584, y],
+  },
+];
 
 function DiePips() {
   return (
@@ -483,12 +503,16 @@ function DiePips() {
             rotation={face.rotation}
           >
             <circleGeometry args={[0.075, 24]} />
-            <meshStandardMaterial color="#16120c" roughness={0.5} metalness={0.05} />
+            <meshStandardMaterial
+              color="#16120c"
+              roughness={0.5}
+              metalness={0.05}
+            />
           </mesh>
         )),
       )}
     </>
-  )
+  );
 }
 
 function DiceModel({
@@ -497,37 +521,63 @@ function DiceModel({
   position,
   index,
 }: {
-  value: DieValue
-  phase: GamePhase
-  position: [number, number, number]
-  index: number
+  value: DieValue;
+  phase: GamePhase;
+  position: [number, number, number];
+  index: number;
 }) {
-  const groupRef = useRef<Group>(null)
+  const groupRef = useRef<Group>(null);
 
   useFrame((state, delta) => {
-    if (!groupRef.current) return
+    if (!groupRef.current) return;
 
-    const isRolling = phase === 'rolling'
-    const speed = 5.2
-    const bob = isRolling ? Math.sin(state.clock.elapsedTime * 2.8 + index) * 0.08 : 0
+    const isRolling = phase === "rolling";
+    const speed = 5.2;
+    const bob = isRolling
+      ? Math.sin(state.clock.elapsedTime * 2.8 + index) * 0.08
+      : 0;
 
-    groupRef.current.position.y = MathUtils.damp(groupRef.current.position.y, position[1] + bob, 8, delta)
+    groupRef.current.position.y = MathUtils.damp(
+      groupRef.current.position.y,
+      position[1] + bob,
+      8,
+      delta,
+    );
 
     if (isRolling) {
-      groupRef.current.rotation.x += delta * speed * (1.1 + index * 0.12)
-      groupRef.current.rotation.y += delta * speed * (0.82 + index * 0.1)
-      groupRef.current.rotation.z += delta * speed * 0.55
-      return
+      groupRef.current.rotation.x += delta * speed * (1.1 + index * 0.12);
+      groupRef.current.rotation.y += delta * speed * (0.82 + index * 0.1);
+      groupRef.current.rotation.z += delta * speed * 0.55;
+      return;
     }
 
-    const target = faceRotations[value]
-    groupRef.current.rotation.x = MathUtils.damp(groupRef.current.rotation.x, target[0], 8, delta)
-    groupRef.current.rotation.y = MathUtils.damp(groupRef.current.rotation.y, target[1], 8, delta)
-    groupRef.current.rotation.z = MathUtils.damp(groupRef.current.rotation.z, target[2], 8, delta)
-  })
+    const target = faceRotations[value];
+    groupRef.current.rotation.x = MathUtils.damp(
+      groupRef.current.rotation.x,
+      target[0],
+      8,
+      delta,
+    );
+    groupRef.current.rotation.y = MathUtils.damp(
+      groupRef.current.rotation.y,
+      target[1],
+      8,
+      delta,
+    );
+    groupRef.current.rotation.z = MathUtils.damp(
+      groupRef.current.rotation.z,
+      target[2],
+      8,
+      delta,
+    );
+  });
 
   return (
-    <group ref={groupRef} position={position} scale={phase === 'reveal' ? 1.42 : 1.32}>
+    <group
+      ref={groupRef}
+      position={position}
+      scale={phase === "reveal" ? 1.42 : 1.32}
+    >
       <RoundedBox args={[1.15, 1.15, 1.15]} radius={0.13} smoothness={7}>
         <meshStandardMaterial
           color="#fff6df"
@@ -539,50 +589,81 @@ function DiceModel({
       </RoundedBox>
       <DiePips />
     </group>
-  )
+  );
 }
 
 function CasinoCover({ phase }: { phase: GamePhase }) {
-  const groupRef = useRef<Group>(null)
+  const groupRef = useRef<Group>(null);
 
   useFrame((state, delta) => {
-    if (!groupRef.current) return
+    if (!groupRef.current) return;
 
-    const pulse = phase === 'lockdown' ? Math.sin(state.clock.elapsedTime * 5) * 0.035 : 0
-    groupRef.current.position.y = MathUtils.damp(groupRef.current.position.y, 0.42 + pulse, 7, delta)
+    const pulse =
+      phase === "lockdown" ? Math.sin(state.clock.elapsedTime * 5) * 0.035 : 0;
+    groupRef.current.position.y = MathUtils.damp(
+      groupRef.current.position.y,
+      0.38 + pulse,
+      7,
+      delta,
+    );
     groupRef.current.rotation.y = MathUtils.damp(
       groupRef.current.rotation.y,
-      phase === 'lockdown' ? 0.05 : 0,
+      phase === "lockdown" ? 0.05 : 0,
       6,
       delta,
-    )
-  })
+    );
+  });
 
   return (
-    <group ref={groupRef} position={[0, 0.42, 0]} scale={[2.05, 1, 0.72]}>
+    <group ref={groupRef} position={[0, 0.38, 0]} scale={[2.65, 1.08, 0.86]}>
       <mesh castShadow receiveShadow>
-        <cylinderGeometry args={[1.28, 1.72, 1.48, 64, 1, false]} />
+        <cylinderGeometry args={[1.48, 1.92, 1.62, 64, 1, false]} />
         <meshStandardMaterial
           color="#4a2116"
           roughness={0.5}
           metalness={0.18}
-          emissive={phase === 'lockdown' ? '#4a0808' : '#1e1208'}
-          emissiveIntensity={phase === 'lockdown' ? 0.22 : 0.1}
+          emissive={phase === "lockdown" ? "#4a0808" : "#1e1208"}
+          emissiveIntensity={phase === "lockdown" ? 0.22 : 0.1}
         />
       </mesh>
-      <mesh position={[0, -0.76, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1, 0.78]}>
+      <mesh
+        position={[0, -0.76, 0]}
+        rotation={[Math.PI / 2, 0, 0]}
+        scale={[1, 1, 0.78]}
+      >
         <torusGeometry args={[1.72, 0.055, 16, 64]} />
-        <meshStandardMaterial color="#d4a84c" roughness={0.3} metalness={0.75} />
+        <meshStandardMaterial
+          color="#d4a84c"
+          roughness={0.3}
+          metalness={0.75}
+        />
       </mesh>
-      <mesh position={[0, 0.74, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1, 0.78]}>
+      <mesh
+        position={[0, 0.74, 0]}
+        rotation={[Math.PI / 2, 0, 0]}
+        scale={[1, 1, 0.78]}
+      >
         <torusGeometry args={[1.27, 0.055, 16, 64]} />
-        <meshStandardMaterial color="#f0c35c" roughness={0.28} metalness={0.8} />
+        <meshStandardMaterial
+          color="#f0c35c"
+          roughness={0.28}
+          metalness={0.8}
+        />
       </mesh>
-      <RoundedBox args={[0.62, 0.18, 0.34]} radius={0.08} smoothness={5} position={[0, 0.91, 0]}>
-        <meshStandardMaterial color="#f0c35c" roughness={0.28} metalness={0.82} />
+      <RoundedBox
+        args={[0.62, 0.18, 0.34]}
+        radius={0.08}
+        smoothness={5}
+        position={[0, 0.91, 0]}
+      >
+        <meshStandardMaterial
+          color="#f0c35c"
+          roughness={0.28}
+          metalness={0.82}
+        />
       </RoundedBox>
     </group>
-  )
+  );
 }
 
 function DiceStage({
@@ -591,25 +672,28 @@ function DiceStage({
   secondsLeft,
   winning,
 }: {
-  phase: GamePhase
-  result: DiceResult
-  secondsLeft: number
-  winning: boolean
+  phase: GamePhase;
+  result: DiceResult;
+  secondsLeft: number;
+  winning: boolean;
 }) {
-  const [displayValues, setDisplayValues] = useState<DiceResult>(result)
-  const visibleValues = phase === 'rolling' ? displayValues : result
-  const diceClosed = phase === 'countdown' || phase === 'lockdown'
-  const showCountdown = phase === 'countdown'
-  const urgentCountdown = showCountdown && secondsLeft <= 10
-  const showResultOverlay = phase === 'reveal' || phase === 'settling'
-  const resultTotal = totalDice(result)
+  const [displayValues, setDisplayValues] = useState<DiceResult>(result);
+  const visibleValues = phase === "rolling" ? displayValues : result;
+  const diceClosed = phase === "countdown" || phase === "lockdown";
+  const showCountdown = phase === "countdown";
+  const urgentCountdown = showCountdown && secondsLeft <= 10;
+  const showResultOverlay = phase === "reveal" || phase === "settling";
+  const resultTotal = totalDice(result);
 
   useEffect(() => {
-    if (phase === 'rolling') {
-      const interval = window.setInterval(() => setDisplayValues(randomDice()), 120)
-      return () => window.clearInterval(interval)
+    if (phase === "rolling") {
+      const interval = window.setInterval(
+        () => setDisplayValues(randomDice()),
+        120,
+      );
+      return () => window.clearInterval(interval);
     }
-  }, [phase])
+  }, [phase]);
 
   return (
     <div className="relative h-full min-h-[132px] overflow-hidden rounded-[1.5rem] border border-amber-200/25 bg-[radial-gradient(circle_at_36%_5%,rgba(251,191,36,0.28),transparent_24%),radial-gradient(circle_at_75%_30%,rgba(16,185,129,0.22),transparent_25%),linear-gradient(145deg,#08150f,#172016_45%,#080403)] shadow-[0_25px_80px_rgba(0,0,0,0.6)]">
@@ -620,10 +704,10 @@ function DiceStage({
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
           <div
             className={cx(
-              'grid h-24 w-24 place-items-center rounded-full border bg-black/45 text-5xl font-black leading-none shadow-2xl backdrop-blur-sm transition',
+              "grid h-24 w-24 place-items-center rounded-full border bg-black/45 text-5xl font-black leading-none shadow-2xl backdrop-blur-sm transition",
               urgentCountdown
-                ? 'animate-[countdownPunch_1s_ease-in-out_infinite] border-red-300 text-red-200 shadow-red-500/30'
-                : 'border-emerald-200/40 text-emerald-100 shadow-emerald-400/20',
+                ? "animate-[countdownPunch_1s_ease-in-out_infinite] border-red-300 text-red-200 shadow-red-500/30"
+                : "border-emerald-200/40 text-emerald-100 shadow-emerald-400/20",
             )}
             aria-label={`${secondsLeft} seconds remaining`}
           >
@@ -635,10 +719,10 @@ function DiceStage({
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/20 px-4 backdrop-blur-[1px]">
           <div
             className={cx(
-              'rounded-[1.4rem] border px-5 py-3 text-center shadow-2xl backdrop-blur-md sm:px-8',
+              "rounded-[1.4rem] border px-5 py-3 text-center shadow-2xl backdrop-blur-md sm:px-8",
               winning
-                ? 'border-amber-100/60 bg-amber-300/18 shadow-amber-300/25'
-                : 'border-white/20 bg-black/45 shadow-black/50',
+                ? "border-amber-100/60 bg-amber-300/18 shadow-amber-300/25"
+                : "border-white/20 bg-black/45 shadow-black/50",
             )}
           >
             <p className="text-[10px] font-black uppercase tracking-[0.34em] text-amber-100/80">
@@ -661,7 +745,7 @@ function DiceStage({
         </div>
       )}
       <Canvas camera={{ position: [0, 2.05, 5.35], fov: 36 }} shadows>
-        <color attach="background" args={['#06100d']} />
+        <color attach="background" args={["#06100d"]} />
         <ambientLight intensity={0.8} />
         <spotLight
           position={[0, 5.5, 3.2]}
@@ -673,16 +757,49 @@ function DiceStage({
         <pointLight position={[-4, 2, 4]} intensity={3} color="#f0b35b" />
         <pointLight position={[4, 2, 3]} intensity={2.4} color="#4ade80" />
         <group rotation={[-0.18, 0, 0]}>
-          <DiceModel value={visibleValues[0]} phase={phase} position={[-2.55, 0.1, 0]} index={0} />
-          <DiceModel value={visibleValues[1]} phase={phase} position={[0, 0.15, 0.06]} index={1} />
-          <DiceModel value={visibleValues[2]} phase={phase} position={[2.55, 0.1, 0]} index={2} />
+          {!diceClosed && (
+            <>
+              <DiceModel
+                value={visibleValues[0]}
+                phase={phase}
+                position={[-2.55, 0.1, 0]}
+                index={0}
+              />
+              <DiceModel
+                value={visibleValues[1]}
+                phase={phase}
+                position={[0, 0.15, 0.06]}
+                index={1}
+              />
+              <DiceModel
+                value={visibleValues[2]}
+                phase={phase}
+                position={[2.55, 0.1, 0]}
+                index={2}
+              />
+            </>
+          )}
           {diceClosed && <CasinoCover phase={phase} />}
         </group>
-        <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.72, 0]}>
+        <mesh
+          receiveShadow
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, -0.72, 0]}
+        >
           <planeGeometry args={[8.5, 4]} />
-          <meshStandardMaterial color="#073d2b" roughness={0.88} metalness={0.02} />
+          <meshStandardMaterial
+            color="#073d2b"
+            roughness={0.88}
+            metalness={0.02}
+          />
         </mesh>
-        <ContactShadows position={[0, -0.7, 0]} opacity={0.5} scale={6} blur={2.6} far={3} />
+        <ContactShadows
+          position={[0, -0.7, 0]}
+          opacity={0.5}
+          scale={6}
+          blur={2.6}
+          far={3}
+        />
         {winning && (
           <Sparkles
             count={90}
@@ -698,26 +815,26 @@ function DiceStage({
       </Canvas>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 to-transparent" />
     </div>
-  )
+  );
 }
 
 function App() {
-  const [nickname, setNickname] = useState('')
-  const [nameDraft, setNameDraft] = useState('')
-  const [balance, setBalance] = useState(STARTING_BALANCE)
-  const [roundNumber, setRoundNumber] = useState(1)
-  const [phase, setPhase] = useState<GamePhase>('idle')
-  const [secondsLeft, setSecondsLeft] = useState(IDLE_SECONDS)
-  const [selectedChip, setSelectedChip] = useState(100)
-  const [bets, setBets] = useState<PlacedBet[]>([])
-  const [result, setResult] = useState<DiceResult>(() => randomDice())
-  const [summary, setSummary] = useState<PayoutSummary | null>(null)
-  const [history, setHistory] = useState<RoundRecord[]>([])
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
-  const betsRef = useRef(bets)
-  const historyButtonRef = useRef<HTMLButtonElement>(null)
-  const historyPopoverRef = useRef<HTMLDivElement>(null)
-  const lastTickSecondRef = useRef<number | null>(null)
+  const [nickname, setNickname] = useState("");
+  const [nameDraft, setNameDraft] = useState("");
+  const [balance, setBalance] = useState(STARTING_BALANCE);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [phase, setPhase] = useState<GamePhase>("idle");
+  const [secondsLeft, setSecondsLeft] = useState(IDLE_SECONDS);
+  const [selectedChip, setSelectedChip] = useState(100);
+  const [bets, setBets] = useState<PlacedBet[]>([]);
+  const [result, setResult] = useState<DiceResult>(() => randomDice());
+  const [summary, setSummary] = useState<PayoutSummary | null>(null);
+  const [history, setHistory] = useState<RoundRecord[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const betsRef = useRef(bets);
+  const historyButtonRef = useRef<HTMLButtonElement>(null);
+  const historyPopoverRef = useRef<HTMLDivElement>(null);
+  const lastTickSecondRef = useRef<number | null>(null);
 
   const groupedOptions = useMemo(
     () =>
@@ -726,174 +843,179 @@ function App() {
         options: BET_OPTIONS.filter((option) => option.group === group),
       })),
     [],
-  )
+  );
 
-  const totalStaked = useMemo(() => bets.reduce((sum, bet) => sum + bet.stake, 0), [bets])
-  const canBet = Boolean(nickname) && phase === 'countdown'
-  const hasWon = Boolean(summary && summary.totalPayout > 0)
-  const resultTotal = totalDice(result)
+  const totalStaked = useMemo(
+    () => bets.reduce((sum, bet) => sum + bet.stake, 0),
+    [bets],
+  );
+  const canBet = Boolean(nickname) && phase === "countdown";
+  const hasWon = Boolean(summary && summary.totalPayout > 0);
+  const resultTotal = totalDice(result);
 
   useEffect(() => {
-    betsRef.current = bets
-  }, [bets])
+    betsRef.current = bets;
+  }, [bets]);
 
   useEffect(() => {
-    if (!isHistoryOpen) return
+    if (!isHistoryOpen) return;
 
     function handleOutsideDismiss(event: PointerEvent) {
-      const target = event.target
-      if (!(target instanceof Node)) return
+      const target = event.target;
+      if (!(target instanceof Node)) return;
 
       if (
         historyPopoverRef.current?.contains(target) ||
         historyButtonRef.current?.contains(target)
       ) {
-        return
+        return;
       }
 
-      setIsHistoryOpen(false)
+      setIsHistoryOpen(false);
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsHistoryOpen(false)
+      if (event.key === "Escape") {
+        setIsHistoryOpen(false);
       }
     }
 
-    document.addEventListener('pointerdown', handleOutsideDismiss)
-    document.addEventListener('keydown', handleEscape)
+    document.addEventListener("pointerdown", handleOutsideDismiss);
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.removeEventListener('pointerdown', handleOutsideDismiss)
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [isHistoryOpen])
+      document.removeEventListener("pointerdown", handleOutsideDismiss);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isHistoryOpen]);
 
   useEffect(() => {
-    if (!nickname || phase !== 'countdown' || secondsLeft > 10 || secondsLeft < 1) {
-      if (phase !== 'countdown') {
-        lastTickSecondRef.current = null
+    if (!nickname || phase !== "countdown" || secondsLeft !== 10) {
+      if (phase !== "countdown") {
+        lastTickSecondRef.current = null;
       }
-      return
+      return;
     }
 
-    if (lastTickSecondRef.current === secondsLeft) return
+    if (lastTickSecondRef.current === secondsLeft) return;
 
-    lastTickSecondRef.current = secondsLeft
-    playCountdownTick(secondsLeft)
-  }, [nickname, phase, secondsLeft])
+    lastTickSecondRef.current = secondsLeft;
+    playCountdownTick();
+  }, [nickname, phase, secondsLeft]);
 
   useEffect(() => {
-    if (!nickname) return
+    if (!nickname) return;
 
     const timeout = window.setTimeout(() => {
-      if (phase === 'idle') {
+      if (phase === "idle") {
         if (secondsLeft > 1) {
-          setSecondsLeft((current) => current - 1)
-          return
+          setSecondsLeft((current) => current - 1);
+          return;
         }
-        setPhase('rolling')
-        setSecondsLeft(ROLLING_SECONDS)
-        setBets([])
-        setSummary(null)
-        setResult(randomDice())
-        return
+        setPhase("rolling");
+        setSecondsLeft(ROLLING_SECONDS);
+        setBets([]);
+        setSummary(null);
+        setResult(randomDice());
+        return;
       }
 
-      if (phase === 'rolling') {
+      if (phase === "rolling") {
         if (secondsLeft > 1) {
-          setSecondsLeft((current) => current - 1)
-          return
+          setSecondsLeft((current) => current - 1);
+          return;
         }
-        setResult(randomDice())
-        setPhase('countdown')
-        setSecondsLeft(COUNTDOWN_SECONDS)
-        return
+        setResult(randomDice());
+        setPhase("countdown");
+        setSecondsLeft(COUNTDOWN_SECONDS);
+        return;
       }
 
-      if (phase === 'countdown') {
+      if (phase === "countdown") {
         if (secondsLeft > 1) {
-          setSecondsLeft((current) => current - 1)
-          return
+          setSecondsLeft((current) => current - 1);
+          return;
         }
-        setPhase('lockdown')
-        setSecondsLeft(LOCKDOWN_SECONDS)
-        return
+        setPhase("lockdown");
+        setSecondsLeft(LOCKDOWN_SECONDS);
+        return;
       }
 
-      if (phase === 'lockdown') {
+      if (phase === "lockdown") {
         if (secondsLeft > 1) {
-          setSecondsLeft((current) => current - 1)
-          return
+          setSecondsLeft((current) => current - 1);
+          return;
         }
-        const nextResult = result
-        const activeBets = betsRef.current
-        const nextSummary = settleBets(activeBets, nextResult)
-        setResult(nextResult)
-        setSummary(nextSummary)
-        setBalance((current) => current + nextSummary.totalPayout)
-        setHistory((current) => [
-          createRoundRecord(roundNumber, nextResult, nextSummary),
-          ...current,
-        ].slice(0, 8))
-        setPhase('reveal')
-        setSecondsLeft(REVEAL_SECONDS)
-        return
+        const nextResult = result;
+        const activeBets = betsRef.current;
+        const nextSummary = settleBets(activeBets, nextResult);
+        setResult(nextResult);
+        setSummary(nextSummary);
+        setBalance((current) => current + nextSummary.totalPayout);
+        setHistory((current) =>
+          [
+            createRoundRecord(roundNumber, nextResult, nextSummary),
+            ...current,
+          ].slice(0, 8),
+        );
+        setPhase("reveal");
+        setSecondsLeft(REVEAL_SECONDS);
+        return;
       }
 
-      if (phase === 'reveal') {
+      if (phase === "reveal") {
         if (secondsLeft > 1) {
-          setSecondsLeft((current) => current - 1)
-          return
+          setSecondsLeft((current) => current - 1);
+          return;
         }
-        setPhase('settling')
-        setSecondsLeft(SETTLE_SECONDS)
-        return
+        setPhase("settling");
+        setSecondsLeft(SETTLE_SECONDS);
+        return;
       }
 
       if (secondsLeft > 1) {
-        setSecondsLeft((current) => current - 1)
-        return
+        setSecondsLeft((current) => current - 1);
+        return;
       }
 
-      setRoundNumber((current) => current + 1)
-      setPhase('idle')
-      setSecondsLeft(IDLE_SECONDS)
-      setBets([])
-      setSummary(null)
-      setResult(randomDice())
-    }, 1000)
+      setRoundNumber((current) => current + 1);
+      setPhase("idle");
+      setSecondsLeft(IDLE_SECONDS);
+      setBets([]);
+      setSummary(null);
+      setResult(randomDice());
+    }, 1000);
 
-    return () => window.clearTimeout(timeout)
-  }, [nickname, phase, result, roundNumber, secondsLeft])
+    return () => window.clearTimeout(timeout);
+  }, [nickname, phase, result, roundNumber, secondsLeft]);
 
   function handleJoin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const cleanName = nameDraft.trim().slice(0, 18)
-    if (!cleanName) return
-    setNickname(cleanName)
-    setNameDraft(cleanName)
+    event.preventDefault();
+    const cleanName = nameDraft.trim().slice(0, 18);
+    if (!cleanName) return;
+    setNickname(cleanName);
+    setNameDraft(cleanName);
   }
 
   function placeBet(option: BetOption) {
-    if (!canBet || balance < selectedChip) return
+    if (!canBet || balance < selectedChip) return;
     const placedBet: PlacedBet = {
       id: getBetId(),
       option,
       stake: selectedChip,
-    }
-    setBets((current) => [...current, placedBet])
-    setBalance((current) => current - selectedChip)
+    };
+    setBets((current) => [...current, placedBet]);
+    setBalance((current) => current - selectedChip);
   }
 
   function removeBet(betId: string) {
-    if (!canBet) return
+    if (!canBet) return;
 
-    const targetBet = bets.find((bet) => bet.id === betId)
-    if (!targetBet) return
+    const targetBet = bets.find((bet) => bet.id === betId);
+    if (!targetBet) return;
 
-    setBets((current) => current.filter((bet) => bet.id !== betId))
-    setBalance((current) => current + targetBet.stake)
+    setBets((current) => current.filter((bet) => bet.id !== betId));
+    setBalance((current) => current + targetBet.stake);
   }
 
   return (
@@ -921,11 +1043,15 @@ function App() {
               <p className="flex items-center gap-1 text-xs text-stone-400">
                 <UserRound size={13} /> Player
               </p>
-              <p className="truncate font-bold text-white">{nickname || 'Guest'}</p>
+              <p className="truncate font-bold text-white">
+                {nickname || "Guest"}
+              </p>
             </div>
             <div className="min-w-[128px] flex-1 rounded-2xl border border-emerald-200/20 bg-emerald-300/[0.08] px-3 py-1.5 md:flex-none">
               <p className="text-xs text-stone-400">Balance</p>
-              <p className="font-bold text-emerald-100">{formatCredits(balance)}</p>
+              <p className="font-bold text-emerald-100">
+                {formatCredits(balance)}
+              </p>
             </div>
             <div className="min-w-[96px] flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-1.5 md:flex-none">
               <p className="text-xs text-stone-400">Round</p>
@@ -955,7 +1081,9 @@ function App() {
                 >
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
-                      <h2 className="text-xl font-black text-white">Game history</h2>
+                      <h2 className="text-xl font-black text-white">
+                        Game history
+                      </h2>
                     </div>
                     <button
                       type="button"
@@ -978,26 +1106,29 @@ function App() {
                           className="rounded-2xl border border-white/10 bg-black/30 p-3"
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <p className="font-black text-white">Round #{record.round}</p>
+                            <p className="font-black text-white">
+                              Round #{record.round}
+                            </p>
                             <p
                               className={cx(
-                                'text-sm font-black',
+                                "text-sm font-black",
                                 record.net > 0
-                                  ? 'text-amber-100'
+                                  ? "text-amber-100"
                                   : record.net < 0
-                                    ? 'text-red-200'
-                                    : 'text-stone-400',
+                                    ? "text-red-200"
+                                    : "text-stone-400",
                               )}
                             >
                               {record.net > 0
                                 ? `+${formatCredits(record.net)}`
                                 : record.net < 0
                                   ? `-${formatCredits(Math.abs(record.net))}`
-                                  : '0'}
+                                  : "0"}
                             </p>
                           </div>
                           <p className="mt-1 text-sm text-stone-400">
-                            {record.result.join('-')} total {record.total} - {record.betCount} bets
+                            {record.result.join("-")} total {record.total} -{" "}
+                            {record.betCount} bets
                           </p>
                         </div>
                       ))
@@ -1010,21 +1141,23 @@ function App() {
         </header>
 
         <div className="grid min-h-0 flex-1 gap-2">
-          <section className="flex min-h-0 min-w-0 flex-col gap-2">
+          <section className="flex min-h-0 min-w-0 flex-col gap-4">
             <div className="h-[17vh] min-h-[112px] max-h-[150px] rounded-[1.55rem] bg-black/25 shadow-2xl shadow-black/40">
               <DiceStage
                 phase={phase}
                 result={result}
                 secondsLeft={secondsLeft}
-                winning={hasWon && (phase === 'reveal' || phase === 'settling')}
+                winning={hasWon && (phase === "reveal" || phase === "settling")}
               />
             </div>
 
             <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_286px]">
-              <div className="relative min-h-0 overflow-hidden rounded-[1.35rem] bg-white/[0.045] p-2 pb-4 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(251,191,36,0.08)]">
+              <div className="relative min-h-0 overflow-hidden rounded-[1.35rem] bg-white/[0.045] p-2 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(251,191,36,0.08)]">
                 <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <h2 className="text-base font-black text-white">Bet board</h2>
+                    <h2 className="text-base font-black text-white">
+                      Bet board
+                    </h2>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {CHIP_VALUES.map((chip) => (
@@ -1033,10 +1166,10 @@ function App() {
                         type="button"
                         onClick={() => setSelectedChip(chip)}
                         className={cx(
-                          'min-h-7 cursor-pointer rounded-full border px-3 text-xs font-black transition',
+                          "min-h-7 cursor-pointer rounded-full border px-3 text-xs font-black transition",
                           selectedChip === chip
-                            ? 'border-amber-200 bg-amber-300 text-black shadow-lg shadow-amber-300/20'
-                            : 'border-white/10 bg-black/35 text-stone-200 hover:border-amber-200/50',
+                            ? "border-amber-200 bg-amber-300 text-black shadow-lg shadow-amber-300/20"
+                            : "border-white/10 bg-black/35 text-stone-200 hover:border-amber-200/50",
                         )}
                       >
                         {chip}
@@ -1046,19 +1179,16 @@ function App() {
                 </div>
 
                 {!canBet && (
-                  <div className="pointer-events-none absolute inset-x-3 top-10 z-20">
-                    <div className="relative mx-auto flex max-w-[680px] items-center justify-center">
-                      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-amber-200/55 to-transparent" />
-                      <div className="absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-between opacity-75">
-                        {Array.from({ length: 12 }, (_, index) => (
-                          <span
-                            key={index}
-                            className="h-3 w-6 rotate-[-16deg] rounded-full border border-amber-100/45 bg-black/30 shadow-[0_0_14px_rgba(245,158,11,0.18)] odd:rotate-[16deg]"
-                          />
-                        ))}
-                      </div>
-                      <div className="animate-[lockedPulse_1.6s_ease-in-out_infinite] relative inline-flex items-center gap-2 rounded-full border border-red-200/45 bg-[#2a0807]/92 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.22em] text-red-100 shadow-[0_0_28px_rgba(248,113,113,0.22)] backdrop-blur">
-                        <LockKeyhole size={13} />
+                  <div className="pointer-events-none absolute inset-0 z-20 rounded-[1.35rem] bg-black/18">
+                    <img
+                      src="/assets/chain-lock-frame.png"
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-fill opacity-95 drop-shadow-[0_0_22px_rgba(245,158,11,0.24)]"
+                      draggable={false}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="animate-[lockedPulse_1.6s_ease-in-out_infinite] inline-flex items-center gap-2 rounded-full border border-red-200/55 bg-[#2a0807]/95 px-5 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-red-100 shadow-[0_0_32px_rgba(248,113,113,0.3)] backdrop-blur">
+                        <LockKeyhole size={14} />
                         Table locked
                       </div>
                     </div>
@@ -1075,16 +1205,19 @@ function App() {
                       </div>
                       <div
                         className={cx(
-                          'grid gap-1',
-                          group === 'Quick Bets' && 'grid-cols-2 sm:grid-cols-4',
-                          group === 'Totals' && 'grid-cols-7 xl:grid-cols-[repeat(14,minmax(0,1fr))]',
-                          group === 'Singles' && 'grid-cols-3 sm:grid-cols-6',
-                          (group === 'Doubles' || group === 'Triples') && 'grid-cols-3 sm:grid-cols-7',
+                          "grid gap-1",
+                          group === "Quick Bets" &&
+                            "grid-cols-2 sm:grid-cols-4",
+                          group === "Totals" &&
+                            "grid-cols-7 xl:grid-cols-[repeat(14,minmax(0,1fr))]",
+                          group === "Singles" && "grid-cols-3 sm:grid-cols-6",
+                          (group === "Doubles" || group === "Triples") &&
+                            "grid-cols-3 sm:grid-cols-7",
                         )}
                       >
                         {options.map((option) => {
-                          const disabled = !canBet || balance < selectedChip
-                          const theme = getBetTheme(option)
+                          const disabled = !canBet || balance < selectedChip;
+                          const theme = getBetTheme(option);
                           return (
                             <button
                               key={option.id}
@@ -1092,19 +1225,19 @@ function App() {
                               disabled={disabled}
                               onClick={() => placeBet(option)}
                               className={cx(
-                                'group min-h-[30px] rounded-lg border p-1 text-left shadow-lg transition duration-200',
+                                "group min-h-[30px] rounded-lg border p-1 text-left shadow-lg transition duration-200",
                                 disabled
-                                  ? 'cursor-not-allowed border-white/5 bg-white/[0.025] text-stone-500'
+                                  ? "cursor-not-allowed border-white/5 bg-white/[0.025] text-stone-500"
                                   : cx(
-                                      'cursor-pointer hover:-translate-y-0.5 focus-visible:-translate-y-0.5',
+                                      "cursor-pointer hover:-translate-y-0.5 focus-visible:-translate-y-0.5",
                                       theme.card,
                                     ),
                               )}
                             >
                               <span
                                 className={cx(
-                                  'mb-0.5 block h-0.5 w-7 rounded-full',
-                                  disabled ? 'bg-white/10' : theme.rail,
+                                  "mb-0.5 block h-0.5 w-7 rounded-full",
+                                  disabled ? "bg-white/10" : theme.rail,
                                 )}
                               />
                               <span className="block text-[11px] font-black leading-tight text-white group-disabled:text-stone-500">
@@ -1115,14 +1248,16 @@ function App() {
                               </span>
                               <span
                                 className={cx(
-                                  'mt-0.5 inline-flex rounded-full px-1.5 py-0 text-[9px] font-black',
-                                  disabled ? 'bg-white/5 text-stone-500' : theme.badge,
+                                  "mt-0.5 inline-flex rounded-full px-1.5 py-0 text-[9px] font-black",
+                                  disabled
+                                    ? "bg-white/5 text-stone-500"
+                                    : theme.badge,
                                 )}
                               >
                                 {option.payoutLabel}
                               </span>
                             </button>
-                          )
+                          );
                         })}
                       </div>
                     </section>
@@ -1133,12 +1268,12 @@ function App() {
               <aside className="flex min-h-0 flex-col gap-2">
                 <section
                   className={cx(
-                    'rounded-[1.35rem] p-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(255,255,255,0.08)]',
+                    "rounded-[1.35rem] p-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(255,255,255,0.08)]",
                     summary
                       ? hasWon
-                        ? 'animate-[winPulse_900ms_ease-out] bg-amber-300/12'
-                        : 'bg-white/[0.05]'
-                      : 'bg-white/[0.05]',
+                        ? "animate-[winPulse_900ms_ease-out] bg-amber-300/12"
+                        : "bg-white/[0.05]"
+                      : "bg-white/[0.05]",
                   )}
                 >
                   <div className="mb-2 flex items-center justify-between">
@@ -1146,9 +1281,13 @@ function App() {
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-100/60">
                         Result
                       </p>
-                      <h2 className="text-base font-black text-white">Round summary</h2>
+                      <h2 className="text-base font-black text-white">
+                        Round summary
+                      </h2>
                     </div>
-                    <Trophy className={hasWon ? 'text-amber-200' : 'text-stone-500'} />
+                    <Trophy
+                      className={hasWon ? "text-amber-200" : "text-stone-500"}
+                    />
                   </div>
 
                   {summary ? (
@@ -1156,13 +1295,15 @@ function App() {
                       <div className="flex items-center justify-between rounded-2xl bg-black/30 p-2.5">
                         <span className="text-sm text-stone-400">Dice</span>
                         <span className="text-lg font-black text-white">
-                          {result.join(' + ')} = {resultTotal}
+                          {result.join(" + ")} = {resultTotal}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div className="rounded-2xl bg-black/25 p-2.5">
                           <p className="text-stone-400">Staked</p>
-                          <p className="font-black">{formatCredits(summary.totalStake)}</p>
+                          <p className="font-black">
+                            {formatCredits(summary.totalStake)}
+                          </p>
                         </div>
                         <div className="rounded-2xl bg-black/25 p-2.5">
                           <p className="text-stone-400">Paid</p>
@@ -1173,23 +1314,23 @@ function App() {
                       </div>
                       <p
                         className={cx(
-                          'rounded-2xl p-2.5 text-center text-base font-black',
+                          "rounded-2xl p-2.5 text-center text-base font-black",
                           summary.net > 0
-                            ? 'bg-amber-300 text-black'
-                            : 'bg-white/[0.05] text-stone-300',
+                            ? "bg-amber-300 text-black"
+                            : "bg-white/[0.05] text-stone-300",
                         )}
                       >
                         {summary.net > 0
                           ? `Won +${formatCredits(summary.net)}`
                           : summary.net < 0
                             ? `Lost ${formatCredits(Math.abs(summary.net))}`
-                            : 'No net change'}
+                            : "No net change"}
                       </p>
                     </div>
                   ) : (
                     <p className="rounded-2xl bg-black/25 p-2.5 text-sm leading-6 text-stone-400">
-                      Bets open only during countdown while the casino cover is closed. The dice
-                      reveal after lockdown.
+                      Bets open only during countdown while the casino cover is
+                      closed. The dice reveal after lockdown.
                     </p>
                   )}
                 </section>
@@ -1200,7 +1341,9 @@ function App() {
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/60">
                         Slip
                       </p>
-                      <h2 className="text-base font-black text-white">Current bets</h2>
+                      <h2 className="text-base font-black text-white">
+                        Current bets
+                      </h2>
                     </div>
                     <span className="rounded-full bg-emerald-300/10 px-3 py-1 text-xs font-black text-emerald-100">
                       {formatCredits(totalStaked)}
@@ -1214,23 +1357,28 @@ function App() {
                       </p>
                     ) : (
                       bets.map((bet) => {
-                        const outcome = summary?.outcomes.find((item) => item.bet.id === bet.id)
+                        const outcome = summary?.outcomes.find(
+                          (item) => item.bet.id === bet.id,
+                        );
                         return (
                           <div
                             key={bet.id}
                             className={cx(
-                              'flex items-center justify-between gap-3 rounded-2xl border p-2.5',
+                              "flex items-center justify-between gap-3 rounded-2xl border p-2.5",
                               outcome?.didWin
-                                ? 'border-amber-200/35 bg-amber-300/10'
+                                ? "border-amber-200/35 bg-amber-300/10"
                                 : outcome
-                                  ? 'border-white/5 bg-black/25 opacity-60'
-                                  : 'border-white/10 bg-black/25',
+                                  ? "border-white/5 bg-black/25 opacity-60"
+                                  : "border-white/10 bg-black/25",
                             )}
                           >
                             <div className="min-w-0">
-                              <p className="truncate font-bold text-white">{bet.option.label}</p>
+                              <p className="truncate font-bold text-white">
+                                {bet.option.label}
+                              </p>
                               <p className="text-xs text-stone-400">
-                                Stake {formatCredits(bet.stake)} - {bet.option.payoutLabel}
+                                Stake {formatCredits(bet.stake)} -{" "}
+                                {bet.option.payoutLabel}
                               </p>
                             </div>
                             {canBet ? (
@@ -1245,17 +1393,24 @@ function App() {
                             ) : outcome ? (
                               <span
                                 className={cx(
-                                  'shrink-0 text-sm font-black',
-                                  outcome.didWin ? 'text-amber-100' : 'text-stone-500',
+                                  "shrink-0 text-sm font-black",
+                                  outcome.didWin
+                                    ? "text-amber-100"
+                                    : "text-stone-500",
                                 )}
                               >
-                                {outcome.didWin ? `+${formatCredits(outcome.profit)}` : 'Lost'}
+                                {outcome.didWin
+                                  ? `+${formatCredits(outcome.profit)}`
+                                  : "Lost"}
                               </span>
                             ) : (
-                              <LockKeyhole className="shrink-0 text-stone-500" size={17} />
+                              <LockKeyhole
+                                className="shrink-0 text-stone-500"
+                                size={17}
+                              />
                             )}
                           </div>
-                        )
+                        );
                       })
                     )}
                   </div>
@@ -1276,9 +1431,12 @@ function App() {
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-200/70">
                 Player check-in
               </p>
-              <h2 className="mt-2 text-3xl font-black text-white">Choose a nickname</h2>
+              <h2 className="mt-2 text-3xl font-black text-white">
+                Choose a nickname
+              </h2>
               <p className="mt-3 text-sm leading-6 text-stone-400">
-                You will receive {formatCredits(STARTING_BALANCE)} session credits.
+                You will receive {formatCredits(STARTING_BALANCE)} session
+                credits.
               </p>
             </div>
             <label className="block">
@@ -1305,7 +1463,7 @@ function App() {
         </div>
       )}
     </main>
-  )
+  );
 }
 
-export default App
+export default App;
