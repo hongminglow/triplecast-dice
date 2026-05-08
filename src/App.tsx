@@ -696,7 +696,6 @@ function DiceStage({
         )}
         <Environment preset="night" />
       </Canvas>
-      <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] ring-1 ring-inset ring-white/10" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 to-transparent" />
     </div>
   )
@@ -716,6 +715,8 @@ function App() {
   const [history, setHistory] = useState<RoundRecord[]>([])
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const betsRef = useRef(bets)
+  const historyButtonRef = useRef<HTMLButtonElement>(null)
+  const historyPopoverRef = useRef<HTMLDivElement>(null)
   const lastTickSecondRef = useRef<number | null>(null)
 
   const groupedOptions = useMemo(
@@ -735,6 +736,38 @@ function App() {
   useEffect(() => {
     betsRef.current = bets
   }, [bets])
+
+  useEffect(() => {
+    if (!isHistoryOpen) return
+
+    function handleOutsideDismiss(event: PointerEvent) {
+      const target = event.target
+      if (!(target instanceof Node)) return
+
+      if (
+        historyPopoverRef.current?.contains(target) ||
+        historyButtonRef.current?.contains(target)
+      ) {
+        return
+      }
+
+      setIsHistoryOpen(false)
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsHistoryOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', handleOutsideDismiss)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsideDismiss)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isHistoryOpen])
 
   useEffect(() => {
     if (!nickname || phase !== 'countdown' || secondsLeft > 10 || secondsLeft < 1) {
@@ -900,6 +933,7 @@ function App() {
             </div>
             <div className="relative">
               <button
+                ref={historyButtonRef}
                 type="button"
                 onClick={() => setIsHistoryOpen((current) => !current)}
                 className="relative flex h-full min-h-[52px] min-w-[52px] cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-amber-100 transition hover:border-amber-200/40 hover:bg-amber-300/10"
@@ -915,12 +949,12 @@ function App() {
               </button>
 
               {isHistoryOpen && (
-                <div className="absolute right-0 top-full z-40 mt-3 w-[min(88vw,380px)] rounded-3xl border border-white/10 bg-[#07100d]/95 p-4 shadow-2xl shadow-black/60 backdrop-blur">
+                <div
+                  ref={historyPopoverRef}
+                  className="absolute right-0 top-full z-40 mt-3 w-[min(88vw,360px)] rounded-[1.35rem] bg-[#07100d]/96 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.62),inset_0_0_0_1px_rgba(255,255,255,0.08)] backdrop-blur"
+                >
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
-                        Session only
-                      </p>
                       <h2 className="text-xl font-black text-white">Game history</h2>
                     </div>
                     <button
@@ -977,7 +1011,7 @@ function App() {
 
         <div className="grid min-h-0 flex-1 gap-2">
           <section className="flex min-h-0 min-w-0 flex-col gap-2">
-            <div className="h-[21vh] min-h-[134px] max-h-[184px] rounded-[1.55rem] border border-amber-100/18 bg-black/30 p-1.5 shadow-2xl shadow-black/40">
+            <div className="h-[18vh] min-h-[116px] max-h-[158px] rounded-[1.55rem] bg-black/25 shadow-2xl shadow-black/40">
               <DiceStage
                 phase={phase}
                 result={result}
@@ -986,14 +1020,14 @@ function App() {
               />
             </div>
 
-            <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_292px]">
-              <div className="min-h-0 rounded-[1.35rem] border border-amber-100/12 bg-white/[0.05] p-2 shadow-xl shadow-black/20">
-                <div className="mb-1.5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_286px]">
+              <div className="min-h-0 rounded-[1.35rem] bg-white/[0.045] p-2 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(251,191,36,0.08)]">
+                <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-200/65">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200/65">
                       Pick your chip
                     </p>
-                    <h2 className="text-lg font-black text-white">Bet board</h2>
+                    <h2 className="text-base font-black text-white">Bet board</h2>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {CHIP_VALUES.map((chip) => (
@@ -1014,11 +1048,11 @@ function App() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {groupedOptions.map(({ group, options }) => (
                     <section key={group}>
-                      <div className="mb-1 flex items-center justify-between">
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-300">
+                      <div className="mb-0.5 flex items-center justify-between">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-300">
                           {group}
                         </h3>
                         {group === 'Quick Bets' && !canBet && (
@@ -1029,7 +1063,7 @@ function App() {
                       </div>
                       <div
                         className={cx(
-                          'grid gap-1.5',
+                          'grid gap-1',
                           group === 'Quick Bets' && 'grid-cols-2 sm:grid-cols-4',
                           group === 'Totals' && 'grid-cols-7 xl:grid-cols-[repeat(14,minmax(0,1fr))]',
                           group === 'Singles' && 'grid-cols-3 sm:grid-cols-6',
@@ -1046,7 +1080,7 @@ function App() {
                               disabled={disabled}
                               onClick={() => placeBet(option)}
                               className={cx(
-                                'group min-h-[38px] rounded-xl border p-1.5 text-left shadow-lg transition duration-200',
+                                'group min-h-[32px] rounded-lg border p-1 text-left shadow-lg transition duration-200',
                                 disabled
                                   ? 'cursor-not-allowed border-white/5 bg-white/[0.025] text-stone-500'
                                   : cx(
@@ -1057,12 +1091,11 @@ function App() {
                             >
                               <span
                                 className={cx(
-                                  'mb-1 block h-1 w-8 rounded-full',
-                                  group === 'Totals' && 'mb-0.5 h-0.5 w-7',
+                                  'mb-0.5 block h-0.5 w-7 rounded-full',
                                   disabled ? 'bg-white/10' : theme.rail,
                                 )}
                               />
-                              <span className="block text-xs font-black leading-tight text-white group-disabled:text-stone-500">
+                              <span className="block text-[11px] font-black leading-tight text-white group-disabled:text-stone-500">
                                 {option.label}
                               </span>
                               <span className="mt-0.5 hidden text-[11px] leading-snug text-stone-400 2xl:block">
@@ -1070,8 +1103,7 @@ function App() {
                               </span>
                               <span
                                 className={cx(
-                                  'mt-1 inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-black',
-                                  group === 'Totals' && 'mt-0.5 px-1 py-0 text-[9px]',
+                                  'mt-0.5 inline-flex rounded-full px-1.5 py-0 text-[9px] font-black',
                                   disabled ? 'bg-white/5 text-stone-500' : theme.badge,
                                 )}
                               >
@@ -1089,12 +1121,12 @@ function App() {
               <aside className="flex min-h-0 flex-col gap-2">
                 <section
                   className={cx(
-                    'rounded-[1.35rem] border p-2.5 shadow-xl shadow-black/20',
+                    'rounded-[1.35rem] p-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(255,255,255,0.08)]',
                     summary
                       ? hasWon
-                        ? 'animate-[winPulse_900ms_ease-out] border-amber-200/40 bg-amber-300/12'
-                        : 'border-white/10 bg-white/[0.05]'
-                      : 'border-white/10 bg-white/[0.05]',
+                        ? 'animate-[winPulse_900ms_ease-out] bg-amber-300/12'
+                        : 'bg-white/[0.05]'
+                      : 'bg-white/[0.05]',
                   )}
                 >
                   <div className="mb-2 flex items-center justify-between">
@@ -1150,7 +1182,7 @@ function App() {
                   )}
                 </section>
 
-                <section className="min-h-0 rounded-[1.35rem] border border-white/10 bg-white/[0.05] p-2.5 shadow-xl shadow-black/20">
+                <section className="min-h-0 rounded-[1.35rem] bg-white/[0.05] p-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(255,255,255,0.08)]">
                   <div className="mb-2 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/60">
@@ -1252,9 +1284,11 @@ function App() {
             <button
               type="submit"
               disabled={!nameDraft.trim()}
-              className="mt-5 w-full cursor-pointer rounded-2xl bg-amber-300 px-5 py-4 text-base font-black text-black transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-500"
+              className="group relative mt-5 flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-2xl border border-amber-100/55 bg-gradient-to-r from-amber-200 via-yellow-300 to-emerald-200 px-5 py-4 text-base font-black text-[#140903] shadow-[0_18px_48px_rgba(245,158,11,0.24)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_60px_rgba(245,158,11,0.34)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:border-stone-600/40 disabled:bg-none disabled:bg-stone-800 disabled:text-stone-500 disabled:shadow-none"
             >
-              Enter table
+              <span className="absolute inset-y-0 -left-1/3 w-1/3 skew-x-[-18deg] bg-white/35 opacity-0 blur-sm transition duration-300 group-hover:left-full group-hover:opacity-100 group-disabled:hidden" />
+              <Dices size={18} className="relative" />
+              <span className="relative">Enter table</span>
             </button>
           </form>
         </div>
