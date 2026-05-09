@@ -115,7 +115,9 @@ input:focus-visible {
   width: min(60%, 700px);
   height: auto;
   transform-origin: center;
-  animation-duration: 3200ms;
+  animation-duration: 2600ms;
+  animation-delay: 0ms;
+  animation-iteration-count: infinite;
   animation-fill-mode: forwards;
   animation-timing-function: cubic-bezier(0.18, 0.72, 0.18, 1);
   will-change: opacity, transform;
@@ -148,74 +150,78 @@ input:focus-visible {
 .lock-center-badge {
   opacity: 0;
   transform: scale(0.86);
-  animation: lockBadgeReveal 420ms ease-out 3300ms forwards,
-    lockedPulse 1.6s ease-in-out 3.82s infinite;
+  animation: lockBadgeReveal 420ms ease-out 1200ms forwards,
+    lockedPulse 1.6s ease-in-out 1.72s infinite;
 }
 
 @keyframes chainLockTopLeft {
-  from {
+  0% {
     opacity: 0;
     transform: translate(-142%, -126%) scaleY(-1);
   }
   14% {
     opacity: 1;
   }
-  86% {
+  60% {
     opacity: 1;
+    transform: translate(28%, 42%) scaleY(-1);
   }
-  to {
-    opacity: 0.98;
+  100% {
+    opacity: 0;
     transform: translate(28%, 42%) scaleY(-1);
   }
 }
 
 @keyframes chainLockTopRight {
-  from {
+  0% {
     opacity: 0;
     transform: translate(142%, -126%) scale(-1, -1);
   }
   14% {
     opacity: 1;
   }
-  86% {
+  60% {
     opacity: 1;
+    transform: translate(-28%, 42%) scale(-1, -1);
   }
-  to {
-    opacity: 0.98;
+  100% {
+    opacity: 0;
     transform: translate(-28%, 42%) scale(-1, -1);
   }
 }
 
 @keyframes chainLockBottomLeft {
-  from {
+  0% {
     opacity: 0;
     transform: translate(-142%, 126%);
   }
   14% {
     opacity: 1;
   }
-  86% {
+  60% {
     opacity: 1;
+    transform: translate(28%, -42%);
   }
-  to {
-    opacity: 0.98;
+  100% {
+    opacity: 0;
     transform: translate(28%, -42%);
   }
 }
 
 @keyframes chainLockBottomRight {
-  from {
+  0% {
     opacity: 0;
     transform: translate(142%, 126%) scaleX(-1);
   }
   14% {
     opacity: 1;
   }
-  86% {
+  60% {
     opacity: 1;
+    transform: translate(-28%, -42%) scaleX(-1);
   }
-  to {
-    opacity: 0.98;
+  100% {
+    opacity: 0;
     transform: translate(-28%, -42%) scaleX(-1);
   }
 }
