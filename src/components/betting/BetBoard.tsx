@@ -5,11 +5,12 @@ import { ChipSelector } from "@/components/betting/ChipSelector";
 import { TableLockOverlay } from "@/components/betting/TableLockOverlay";
 import { BET_OPTIONS } from "@/features/game/bets";
 import { BET_GROUPS } from "@/features/game/constants";
-import type { BetOption, PendingBet } from "@/features/game/types";
+import type { BetOption, GamePhase, PendingBet } from "@/features/game/types";
 import { cx } from "@/lib/utils";
 
 type BetBoardProps = {
   nickname: string;
+  phase: GamePhase;
   canBet: boolean;
   selectedChip: number;
   onSelectChip: (chip: number) => void;
@@ -24,6 +25,7 @@ type BetBoardProps = {
 
 export function BetBoard({
   nickname,
+  phase,
   canBet,
   selectedChip,
   onSelectChip,
@@ -44,7 +46,7 @@ export function BetBoard({
     [],
   );
 
-  const showLock = Boolean(nickname) && !canBet;
+  const showLock = Boolean(nickname) && phase === "lockdown";
 
   return (
     <div className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.35rem] bg-white/[0.045] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(251,191,36,0.08)]">

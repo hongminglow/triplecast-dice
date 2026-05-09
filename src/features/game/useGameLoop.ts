@@ -22,7 +22,7 @@ import type {
   PlacedBet,
   RoundRecord,
 } from "@/features/game/types";
-import { createLoopingSfx, playSfx } from "@/lib/audio";
+import { createLoopingSfx, playSfx, preloadSfx } from "@/lib/audio";
 
 export type GameLoopState = {
   balance: number;
@@ -68,6 +68,10 @@ export function useGameLoop({ nickname }: UseGameLoopOptions): [
   const betsRef = useRef(bets);
   const rollingAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastTickSecondRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    preloadSfx();
+  }, []);
 
   useEffect(() => {
     betsRef.current = bets;

@@ -27,15 +27,43 @@ const SFX_VOLUMES: Record<SfxKey, number> = {
   kaching: 0.65,
 };
 
+const ALL_SFX = Object.keys(SFX_PATHS) as SfxKey[];
+const audioCache = new Map<SfxKey, HTMLAudioElement>();
+
+function getCachedAudio(key: SfxKey): HTMLAudioElement | null {
+  if (typeof Audio === "undefined") return null;
+
+  const cachedAudio = audioCache.get(key);
+  if (cachedAudio) return cachedAudio;
+
+  const audio = new Audio(SFX_PATHS[key]);
+  audio.preload = "auto";
+  audio.volume = SFX_VOLUMES[key];
+  audio.load();
+  audioCache.set(key, audio);
+  return audio;
+}
+
+export function preloadSfx(keys: SfxKey[] = ALL_SFX): void {
+  try {
+    keys.forEach((key) => getCachedAudio(key));
+  } catch (error) {
+    void error;
+  }
+}
+
 /**
- * Fire-and-forget one-shot SFX. Creates a fresh Audio instance each call so
- * rapid successive triggers (button mashing) overlap cleanly and GC after
- * playback.
+ * Fire-and-forget one-shot SFX. Uses preloaded sources when available so
+ * phase-entry cues do not lag behind the UI.
  */
 export function playSfx(key: SfxKey): void {
   try {
-    const audio = new Audio(SFX_PATHS[key]);
+    const cachedAudio = getCachedAudio(key);
+    const audio = cachedAudio
+      ? (cachedAudio.cloneNode(true) as HTMLAudioElement)
+      : new Audio(SFX_PATHS[key]);
     audio.volume = SFX_VOLUMES[key];
+    audio.currentTime = 0;
     void audio.play().catch(() => undefined);
   } catch (error) {
     void error;
@@ -44,7 +72,10 @@ export function playSfx(key: SfxKey): void {
 
 /** Create a persistent looping audio (e.g. dice-shake ambience). */
 export function createLoopingSfx(key: SfxKey): HTMLAudioElement {
-  const audio = new Audio(SFX_PATHS[key]);
+  const cachedAudio = getCachedAudio(key);
+  const audio = cachedAudio
+    ? (cachedAudio.cloneNode(true) as HTMLAudioElement)
+    : new Audio(SFX_PATHS[key]);
   audio.volume = SFX_VOLUMES[key];
   audio.loop = true;
   return audio;

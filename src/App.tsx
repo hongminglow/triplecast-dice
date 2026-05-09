@@ -64,6 +64,7 @@ function App() {
             <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_286px]">
               <BetBoard
                 nickname={nickname}
+                phase={phase}
                 canBet={canBet}
                 selectedChip={selectedChip}
                 onSelectChip={setSelectedChip}
