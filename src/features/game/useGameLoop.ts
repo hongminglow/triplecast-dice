@@ -45,7 +45,6 @@ export type GameLoopActions = {
   queueBet: (option: BetOption, chip: number) => void;
   confirmPendingBets: () => void;
   clearPendingBets: () => void;
-  removeBet: (betId: string) => void;
 };
 
 export type UseGameLoopOptions = {
@@ -103,12 +102,12 @@ export function useGameLoop({ nickname }: UseGameLoopOptions): [
   }, [nickname, phase, secondsLeft]);
 
   // Phase-entry SFX cues:
-  //   - game-start plays when a new round begins rolling
+  //   - game-start plays when the betting window opens (player can place bets)
   //   - chain-lock plays when the betting window closes (countdown → lockdown)
   //   - kaching plays on reveal if the player actually won credits
   useEffect(() => {
     if (!nickname) return;
-    if (phase === "rolling") playSfx("game-start");
+    if (phase === "countdown") playSfx("game-start");
     if (phase === "lockdown") playSfx("chain-lock");
     if (phase === "reveal" && summary && summary.totalPayout > summary.totalStake) {
       playSfx("kaching");
@@ -265,20 +264,6 @@ export function useGameLoop({ nickname }: UseGameLoopOptions): [
     setPendingBets([]);
   }, [canBet]);
 
-  const removeBet = useCallback(
-    (betId: string) => {
-      if (!canBet) return;
-
-      const targetBet = bets.find((bet) => bet.id === betId);
-      if (!targetBet) return;
-
-      playSfx("button-click");
-      setBets((current) => current.filter((bet) => bet.id !== betId));
-      setBalance((current) => current + targetBet.stake);
-    },
-    [bets, canBet],
-  );
-
   const state: GameLoopState = {
     balance,
     roundNumber,
@@ -300,7 +285,6 @@ export function useGameLoop({ nickname }: UseGameLoopOptions): [
     queueBet,
     confirmPendingBets,
     clearPendingBets,
-    removeBet,
   };
 
   return [state, actions];

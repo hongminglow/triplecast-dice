@@ -88,9 +88,7 @@ function App() {
                 <BetSlip
                   bets={bets}
                   totalStaked={totalStaked}
-                  canBet={canBet}
                   summary={summary}
-                  onRemoveBet={actions.removeBet}
                 />
               </aside>
             </div>

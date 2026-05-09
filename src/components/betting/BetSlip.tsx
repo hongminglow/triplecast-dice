@@ -1,5 +1,6 @@
-import { LockKeyhole, X } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 
+import { ChipToken } from "@/components/betting/ChipToken";
 import type {
   BetOutcome,
   PayoutSummary,
@@ -10,18 +11,10 @@ import { cx, formatCredits } from "@/lib/utils";
 type BetSlipProps = {
   bets: PlacedBet[];
   totalStaked: number;
-  canBet: boolean;
   summary: PayoutSummary | null;
-  onRemoveBet: (betId: string) => void;
 };
 
-export function BetSlip({
-  bets,
-  totalStaked,
-  canBet,
-  summary,
-  onRemoveBet,
-}: BetSlipProps) {
+export function BetSlip({ bets, totalStaked, summary }: BetSlipProps) {
   return (
     <section className="min-h-0 rounded-[1.35rem] bg-white/[0.05] p-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(255,255,255,0.08)]">
       <div className="mb-2 flex items-center justify-between">
@@ -46,15 +39,7 @@ export function BetSlip({
             const outcome = summary?.outcomes.find(
               (item) => item.bet.id === bet.id,
             );
-            return (
-              <BetSlipRow
-                key={bet.id}
-                bet={bet}
-                outcome={outcome}
-                canBet={canBet}
-                onRemove={() => onRemoveBet(bet.id)}
-              />
-            );
+            return <BetSlipRow key={bet.id} bet={bet} outcome={outcome} />;
           })
         )}
       </div>
@@ -65,15 +50,13 @@ export function BetSlip({
 type BetSlipRowProps = {
   bet: PlacedBet;
   outcome: BetOutcome | undefined;
-  canBet: boolean;
-  onRemove: () => void;
 };
 
-function BetSlipRow({ bet, outcome, canBet, onRemove }: BetSlipRowProps) {
+function BetSlipRow({ bet, outcome }: BetSlipRowProps) {
   return (
     <div
       className={cx(
-        "flex items-center justify-between gap-3 rounded-2xl border p-2.5",
+        "flex items-center justify-between gap-2 rounded-2xl border p-2",
         outcome?.didWin
           ? "border-amber-200/35 bg-amber-300/10"
           : outcome
@@ -81,33 +64,32 @@ function BetSlipRow({ bet, outcome, canBet, onRemove }: BetSlipRowProps) {
             : "border-white/10 bg-black/25",
       )}
     >
-      <div className="min-w-0">
-        <p className="truncate font-bold text-white">{bet.option.label}</p>
-        <p className="text-xs text-stone-400">
-          Stake {formatCredits(bet.stake)} - {bet.option.payoutLabel}
-        </p>
+      <div className="flex min-w-0 items-center gap-2">
+        <ChipToken value={bet.stake} size="badge" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold leading-tight text-white">
+            {bet.option.label}
+          </p>
+          <p className="text-[11px] text-stone-400">{bet.option.payoutLabel}</p>
+        </div>
       </div>
-      {canBet ? (
-        <button
-          type="button"
-          onClick={onRemove}
-          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/10 text-stone-300 transition hover:border-red-300/50 hover:text-red-200"
-          aria-label={`Remove ${bet.option.label}`}
-        >
-          <X size={16} />
-        </button>
-      ) : outcome ? (
-        <span
-          className={cx(
-            "shrink-0 text-sm font-black",
-            outcome.didWin ? "text-amber-100" : "text-stone-500",
-          )}
-        >
-          {outcome.didWin ? `+${formatCredits(outcome.profit)}` : "Lost"}
-        </span>
-      ) : (
-        <LockKeyhole className="shrink-0 text-stone-500" size={17} />
-      )}
+      <div className="flex shrink-0 items-center">
+        {outcome ? (
+          <span
+            className={cx(
+              "text-sm font-black",
+              outcome.didWin ? "text-amber-100" : "text-stone-500",
+            )}
+          >
+            {outcome.didWin ? `+${formatCredits(outcome.profit)}` : "Lost"}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/30 bg-emerald-300/10 px-2 py-0.5 text-xs font-black text-emerald-100">
+            <LockKeyhole size={11} />
+            {formatCredits(bet.stake)}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
