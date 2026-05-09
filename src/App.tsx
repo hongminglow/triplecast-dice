@@ -6,6 +6,7 @@ import {
   Sparkles,
 } from "@react-three/drei";
 import {
+  Check,
   Dices,
   History,
   LockKeyhole,
@@ -52,6 +53,11 @@ type BetOption = {
 
 type PlacedBet = {
   id: string;
+  option: BetOption;
+  stake: number;
+};
+
+type PendingBet = {
   option: BetOption;
   stake: number;
 };
@@ -528,26 +534,23 @@ function DiceModel({
 }) {
   const groupRef = useRef<Group>(null);
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (!groupRef.current) return;
 
     const isRolling = phase === "rolling";
-    const speed = 5.2;
-    const bob = isRolling
-      ? Math.sin(state.clock.elapsedTime * 2.8 + index) * 0.08
-      : 0;
+    const speed = 6.6;
 
     groupRef.current.position.y = MathUtils.damp(
       groupRef.current.position.y,
-      position[1] + bob,
+      position[1],
       8,
       delta,
     );
 
     if (isRolling) {
-      groupRef.current.rotation.x += delta * speed * (1.1 + index * 0.12);
-      groupRef.current.rotation.y += delta * speed * (0.82 + index * 0.1);
-      groupRef.current.rotation.z += delta * speed * 0.55;
+      groupRef.current.rotation.x += delta * speed * (1.2 + index * 0.15);
+      groupRef.current.rotation.y += delta * speed * (1.02 + index * 0.11);
+      groupRef.current.rotation.z += delta * speed * (0.9 + index * 0.08);
       return;
     }
 
@@ -826,6 +829,7 @@ function App() {
   const [phase, setPhase] = useState<GamePhase>("idle");
   const [secondsLeft, setSecondsLeft] = useState(IDLE_SECONDS);
   const [selectedChip, setSelectedChip] = useState(100);
+  const [pendingBets, setPendingBets] = useState<PendingBet[]>([]);
   const [bets, setBets] = useState<PlacedBet[]>([]);
   const [result, setResult] = useState<DiceResult>(() => randomDice());
   const [summary, setSummary] = useState<PayoutSummary | null>(null);
@@ -851,6 +855,13 @@ function App() {
     [bets],
   );
   const canBet = Boolean(nickname) && phase === "countdown";
+  const pendingTotal = useMemo(
+    () => pendingBets.reduce((sum, bet) => sum + bet.stake, 0),
+    [pendingBets],
+  );
+  const availableBalance = balance - pendingTotal;
+  const canConfirmBets =
+    canBet && pendingBets.length > 0 && pendingTotal <= balance;
   const hasWon = Boolean(summary && summary.totalPayout > 0);
   const resultTotal = totalDice(result);
 
@@ -935,6 +946,7 @@ function App() {
         setPhase("rolling");
         setSecondsLeft(ROLLING_SECONDS);
         setBets([]);
+        setPendingBets([]);
         setSummary(null);
         setResult(randomDice());
         return;
@@ -958,6 +970,7 @@ function App() {
         }
         setPhase("lockdown");
         setSecondsLeft(LOCKDOWN_SECONDS);
+        setPendingBets([]);
         return;
       }
 
@@ -1002,6 +1015,7 @@ function App() {
       setPhase("idle");
       setSecondsLeft(IDLE_SECONDS);
       setBets([]);
+      setPendingBets([]);
       setSummary(null);
       setResult(randomDice());
     }, 1000);
@@ -1017,15 +1031,41 @@ function App() {
     setNameDraft(cleanName);
   }
 
-  function placeBet(option: BetOption) {
-    if (!canBet || balance < selectedChip) return;
-    const placedBet: PlacedBet = {
+  function queueBet(option: BetOption) {
+    if (!canBet || availableBalance < selectedChip) return;
+
+    setPendingBets((current) => {
+      const existingBet = current.find((bet) => bet.option.id === option.id);
+
+      if (!existingBet) {
+        return [...current, { option, stake: selectedChip }];
+      }
+
+      return current.map((bet) =>
+        bet.option.id === option.id
+          ? { ...bet, stake: bet.stake + selectedChip }
+          : bet,
+      );
+    });
+  }
+
+  function confirmPendingBets() {
+    if (!canConfirmBets) return;
+
+    const confirmedBets = pendingBets.map((bet) => ({
       id: getBetId(),
-      option,
-      stake: selectedChip,
-    };
-    setBets((current) => [...current, placedBet]);
-    setBalance((current) => current - selectedChip);
+      option: bet.option,
+      stake: bet.stake,
+    }));
+
+    setBets((current) => [...current, ...confirmedBets]);
+    setBalance((current) => current - pendingTotal);
+    setPendingBets([]);
+  }
+
+  function clearPendingBets() {
+    if (!canBet) return;
+    setPendingBets([]);
   }
 
   function removeBet(betId: string) {
@@ -1165,27 +1205,56 @@ function App() {
                       Bet board
                     </h2>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
                     {CHIP_VALUES.map((chip) => (
                       <button
                         key={chip}
                         type="button"
+                        disabled={!canBet}
                         onClick={() => setSelectedChip(chip)}
                         className={cx(
                           "min-h-7 cursor-pointer rounded-full border px-3 text-xs font-black transition",
-                          selectedChip === chip
-                            ? "border-amber-200 bg-amber-300 text-black shadow-lg shadow-amber-300/20"
-                            : "border-white/10 bg-black/35 text-stone-200 hover:border-amber-200/50",
+                          !canBet
+                            ? "cursor-not-allowed border-white/5 bg-black/20 text-stone-600"
+                            : selectedChip === chip
+                              ? "border-amber-200 bg-amber-300 text-black shadow-lg shadow-amber-300/20"
+                              : "border-white/10 bg-black/35 text-stone-200 hover:border-amber-200/50",
                         )}
                       >
                         {chip}
                       </button>
                     ))}
+                    <button
+                      type="button"
+                      disabled={!canConfirmBets}
+                      onClick={confirmPendingBets}
+                      className={cx(
+                        "inline-flex min-h-7 items-center gap-1.5 rounded-full border px-3 text-xs font-black transition",
+                        canConfirmBets
+                          ? "cursor-pointer border-emerald-100/55 bg-emerald-300 text-[#04100b] shadow-lg shadow-emerald-300/20 hover:-translate-y-0.5 hover:shadow-emerald-300/30"
+                          : "cursor-not-allowed border-white/5 bg-white/[0.03] text-stone-600",
+                      )}
+                    >
+                      <Check size={13} />
+                      {pendingTotal > 0
+                        ? `Confirm ${formatCredits(pendingTotal)}`
+                        : "Confirm"}
+                    </button>
+                    {pendingBets.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearPendingBets}
+                        className="grid min-h-7 w-7 cursor-pointer place-items-center rounded-full border border-white/10 bg-black/35 text-stone-300 transition hover:border-red-300/50 hover:text-red-200"
+                        aria-label="Clear queued bets"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 {!canBet && (
-                  <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[1.35rem] bg-black/20">
+                  <div className="pointer-events-auto absolute inset-0 z-20 overflow-hidden rounded-[1.35rem] bg-black/20">
                     {["topLeft", "topRight", "bottomLeft", "bottomRight"].map(
                       (corner) => (
                         <img
@@ -1193,7 +1262,7 @@ function App() {
                           src="/assets/chain-lock-arm.png"
                           alt=""
                           className={cx(
-                            "lock-chain-arm absolute opacity-0 drop-shadow-[0_0_18px_rgba(245,158,11,0.28)]",
+                            "lock-chain-arm absolute opacity-0 drop-shadow-[0_0_18px_rgba(203,213,225,0.36)]",
                             corner === "topLeft" && "lock-chain-arm--top-left",
                             corner === "topRight" &&
                               "lock-chain-arm--top-right",
@@ -1236,16 +1305,22 @@ function App() {
                         )}
                       >
                         {options.map((option) => {
-                          const disabled = !canBet || balance < selectedChip;
+                          const pendingBet = pendingBets.find(
+                            (bet) => bet.option.id === option.id,
+                          );
+                          const disabled =
+                            !canBet || availableBalance < selectedChip;
                           const theme = getBetTheme(option);
                           return (
                             <button
                               key={option.id}
                               type="button"
                               disabled={disabled}
-                              onClick={() => placeBet(option)}
+                              onClick={() => queueBet(option)}
                               className={cx(
-                                "group min-h-[30px] rounded-lg border p-1 text-left shadow-lg transition duration-200",
+                                "group relative min-h-[30px] rounded-lg border p-1 text-left shadow-lg transition duration-200",
+                                pendingBet &&
+                                  "ring-2 ring-amber-100/70 ring-offset-1 ring-offset-[#14110c]",
                                 disabled
                                   ? "cursor-not-allowed border-white/5 bg-white/[0.025] text-stone-500"
                                   : cx(
@@ -1260,6 +1335,12 @@ function App() {
                                   disabled ? "bg-white/10" : theme.rail,
                                 )}
                               />
+                              {pendingBet && (
+                                <span className="absolute -right-1 -top-1 z-10 inline-flex min-h-5 min-w-8 items-center justify-center gap-1 rounded-full border border-amber-100/70 bg-[#f8d66c] px-1.5 text-[9px] font-black leading-none text-[#160c03] shadow-[0_8px_20px_rgba(0,0,0,0.35)]">
+                                  <span className="h-2 w-2 rounded-full bg-[#160c03]/80 ring-2 ring-[#fff3ba]" />
+                                  {formatCredits(pendingBet.stake)}
+                                </span>
+                              )}
                               <span className="block text-[11px] font-black leading-tight text-white group-disabled:text-stone-500">
                                 {option.label}
                               </span>
