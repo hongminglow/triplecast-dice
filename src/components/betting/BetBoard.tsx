@@ -96,6 +96,7 @@ export function BetBoard({
                     option={option}
                     pendingBet={pendingBet}
                     disabled={disabled}
+                    compact={group === "Totals"}
                     onClick={() => onQueueBet(option)}
                   />
                 );

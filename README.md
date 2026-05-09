@@ -1,6 +1,6 @@
-# TripleCast Dice
+# TripleCast Royale
 
-TripleCast Dice is a one-page, fun-play dice betting game built with React 19, Vite, TypeScript, Tailwind 4, and React Three Fiber. It plays like a fast casino broadcast table: three dice roll on a TV-style 3D stage, the table cover closes, players place session-credit bets during countdown, and each round settles automatically.
+TripleCast Royale is a one-page, fun-play Sic Bo-style dice betting game built with React 19, Vite, TypeScript, Tailwind 4, and React Three Fiber. It plays like a fast live casino table: three dice roll on a TV-style 3D stage, the table cover closes, players place session-credit bets during countdown, and each round settles automatically.
 
 This is not a real-money betting product. Everything is client-side and session-only. Refreshing the page resets the nickname, balance, bets, result history, and current round.
 

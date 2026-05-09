@@ -115,43 +115,43 @@ input:focus-visible {
   width: min(60%, 700px);
   height: auto;
   transform-origin: center;
-  animation-duration: 2600ms;
-  animation-delay: 0ms;
-  animation-iteration-count: infinite;
-  animation-fill-mode: forwards;
-  animation-timing-function: cubic-bezier(0.18, 0.72, 0.18, 1);
-  will-change: opacity, transform;
+  animation-duration: 1400ms, 3200ms;
+  animation-delay: 0ms, 1400ms;
+  animation-iteration-count: 1, infinite;
+  animation-fill-mode: forwards, none;
+  animation-timing-function: cubic-bezier(0.18, 0.72, 0.18, 1), ease-in-out;
+  will-change: opacity, transform, filter;
 }
 
 .lock-chain-arm--top-left {
   left: -14%;
   top: -24%;
-  animation-name: chainLockTopLeft;
+  animation-name: chainLockTopLeft, chainLockShimmerTopLeft;
 }
 
 .lock-chain-arm--top-right {
   right: -14%;
   top: -24%;
-  animation-name: chainLockTopRight;
+  animation-name: chainLockTopRight, chainLockShimmerTopRight;
 }
 
 .lock-chain-arm--bottom-left {
   bottom: -24%;
   left: -14%;
-  animation-name: chainLockBottomLeft;
+  animation-name: chainLockBottomLeft, chainLockShimmerBottomLeft;
 }
 
 .lock-chain-arm--bottom-right {
   bottom: -24%;
   right: -14%;
-  animation-name: chainLockBottomRight;
+  animation-name: chainLockBottomRight, chainLockShimmerBottomRight;
 }
 
 .lock-center-badge {
   opacity: 0;
   transform: scale(0.86);
-  animation: lockBadgeReveal 420ms ease-out 1200ms forwards,
-    lockedPulse 1.6s ease-in-out 1.72s infinite;
+  animation: lockBadgeReveal 420ms ease-out 1500ms forwards,
+    lockedPulse 1.6s ease-in-out 2.02s infinite;
 }
 
 @keyframes chainLockTopLeft {
@@ -159,15 +159,11 @@ input:focus-visible {
     opacity: 0;
     transform: translate(-142%, -126%) scaleY(-1);
   }
-  14% {
+  20% {
     opacity: 1;
-  }
-  60% {
-    opacity: 1;
-    transform: translate(28%, 42%) scaleY(-1);
   }
   100% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(28%, 42%) scaleY(-1);
   }
 }
@@ -177,15 +173,11 @@ input:focus-visible {
     opacity: 0;
     transform: translate(142%, -126%) scale(-1, -1);
   }
-  14% {
+  20% {
     opacity: 1;
-  }
-  60% {
-    opacity: 1;
-    transform: translate(-28%, 42%) scale(-1, -1);
   }
   100% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(-28%, 42%) scale(-1, -1);
   }
 }
@@ -195,15 +187,11 @@ input:focus-visible {
     opacity: 0;
     transform: translate(-142%, 126%);
   }
-  14% {
+  20% {
     opacity: 1;
-  }
-  60% {
-    opacity: 1;
-    transform: translate(28%, -42%);
   }
   100% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(28%, -42%);
   }
 }
@@ -213,16 +201,60 @@ input:focus-visible {
     opacity: 0;
     transform: translate(142%, 126%) scaleX(-1);
   }
-  14% {
+  20% {
     opacity: 1;
-  }
-  60% {
-    opacity: 1;
-    transform: translate(-28%, -42%) scaleX(-1);
   }
   100% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(-28%, -42%) scaleX(-1);
+  }
+}
+
+@keyframes chainLockShimmerTopLeft {
+  0%,
+  100% {
+    transform: translate(28%, 42%) scaleY(-1);
+    filter: drop-shadow(0 0 18px rgba(203, 213, 225, 0.36));
+  }
+  50% {
+    transform: translate(26%, 40%) scaleY(-1);
+    filter: drop-shadow(0 0 26px rgba(248, 113, 113, 0.55));
+  }
+}
+
+@keyframes chainLockShimmerTopRight {
+  0%,
+  100% {
+    transform: translate(-28%, 42%) scale(-1, -1);
+    filter: drop-shadow(0 0 18px rgba(203, 213, 225, 0.36));
+  }
+  50% {
+    transform: translate(-26%, 40%) scale(-1, -1);
+    filter: drop-shadow(0 0 26px rgba(248, 113, 113, 0.55));
+  }
+}
+
+@keyframes chainLockShimmerBottomLeft {
+  0%,
+  100% {
+    transform: translate(28%, -42%);
+    filter: drop-shadow(0 0 18px rgba(203, 213, 225, 0.36));
+  }
+  50% {
+    transform: translate(26%, -40%);
+    filter: drop-shadow(0 0 26px rgba(248, 113, 113, 0.55));
+  }
+}
+
+@keyframes chainLockShimmerBottomRight {
+  0%,
+  100% {
+    transform: translate(-28%, -42%) scaleX(-1);
+    filter: drop-shadow(0 0 18px rgba(203, 213, 225, 0.36));
+  }
+  50% {
+    transform: translate(-26%, -40%) scaleX(-1);
+    filter: drop-shadow(0 0 26px rgba(248, 113, 113, 0.55));
   }
 }
 

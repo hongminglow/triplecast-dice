@@ -5,7 +5,7 @@ import { cx, formatChipAmount } from "@/lib/utils";
 
 type ChipTokenProps = {
   value: number;
-  size?: "control" | "badge";
+  size?: "control" | "badge" | "mini";
   selected?: boolean;
   disabled?: boolean;
 };
@@ -17,8 +17,8 @@ export function ChipToken({
   disabled = false,
 }: ChipTokenProps) {
   const theme = getChipTheme(value);
-  const dimension = size === "badge" ? 26 : 38;
-  const innerInset = size === "badge" ? 4 : 6;
+  const dimension = size === "mini" ? 18 : size === "badge" ? 26 : 38;
+  const innerInset = size === "mini" ? 3 : size === "badge" ? 4 : 6;
   const amount = formatChipAmount(value);
 
   const chipStyle = {
@@ -53,13 +53,17 @@ export function ChipToken({
       <span
         className={cx(
           "relative z-10 font-black leading-none tracking-normal",
-          size === "badge"
+          size === "mini"
             ? amount.length >= 4
-              ? "text-[5px]"
-              : "text-[7px]"
-            : amount.length >= 4
-              ? "text-[7px]"
-              : "text-[8px]",
+              ? "text-[4px]"
+              : "text-[6px]"
+            : size === "badge"
+              ? amount.length >= 4
+                ? "text-[5px]"
+                : "text-[7px]"
+              : amount.length >= 4
+                ? "text-[7px]"
+                : "text-[8px]",
         )}
         style={{ color: theme.text }}
       >

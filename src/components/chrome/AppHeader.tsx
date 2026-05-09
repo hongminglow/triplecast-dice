@@ -31,10 +31,10 @@ export function AppHeader({
         </div>
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-amber-100/60">
-            Three Dice Studio
+            Live Sic Bo &middot; Table 07
           </p>
           <h1 className="text-base font-black tracking-normal text-white sm:text-xl">
-            Broadcast Dice Table
+            TripleCast Royale
           </h1>
         </div>
       </div>
