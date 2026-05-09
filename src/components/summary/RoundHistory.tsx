@@ -6,6 +6,8 @@ type RoundHistoryProps = {
 };
 
 export function RoundHistory({ history }: RoundHistoryProps) {
+  const participatedRounds = history.filter((record) => record.betCount > 0);
+
   return (
     <section className="flex min-h-0 flex-1 flex-col rounded-[1.35rem] bg-white/5 p-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(255,255,255,0.08)]">
       <div className="mb-2 flex items-center justify-between">
@@ -13,12 +15,14 @@ export function RoundHistory({ history }: RoundHistoryProps) {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-0.5">
-        {history.length === 0 ? (
+        {participatedRounds.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-white/10 p-3 text-sm text-stone-500">
-            Completed rounds will appear here.
+            Rounds you join will appear here.
           </p>
         ) : (
-          history.map((record) => <RoundHistoryRow key={record.round} record={record} />)
+          participatedRounds.map((record) => (
+            <RoundHistoryRow key={record.round} record={record} />
+          ))
         )}
       </div>
     </section>

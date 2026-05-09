@@ -3,7 +3,7 @@ import type { BetGroup, DieValue } from "@/features/game/types";
 export const STARTING_BALANCE = 5000;
 export const IDLE_SECONDS = 5;
 export const ROLLING_SECONDS = 10;
-export const COUNTDOWN_SECONDS = 60;
+export const COUNTDOWN_SECONDS = 10;
 export const LOCKDOWN_SECONDS = 4;
 export const REVEAL_SECONDS = 3;
 export const SETTLE_SECONDS = 5;
