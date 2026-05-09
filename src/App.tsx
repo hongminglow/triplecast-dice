@@ -5,7 +5,7 @@ import { NicknameGate } from "@/components/chrome/NicknameGate";
 import { BetBoard } from "@/components/betting/BetBoard";
 import { BetSlip } from "@/components/betting/BetSlip";
 import { DiceStage } from "@/components/dice-stage/DiceStage";
-import { SessionSummary } from "@/components/summary/SessionSummary";
+import { RoundHistory } from "@/components/summary/RoundHistory";
 import { useGameLoop } from "@/features/game/useGameLoop";
 
 function App() {
@@ -77,12 +77,12 @@ function App() {
               />
 
               <aside className="flex min-h-0 flex-col gap-2">
-                <SessionSummary balance={balance} history={history} />
                 <BetSlip
                   bets={bets}
                   totalStaked={totalStaked}
                   summary={summary}
                 />
+                <RoundHistory history={history} />
               </aside>
             </div>
           </section>
