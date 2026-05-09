@@ -15,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import { MathUtils } from "three";
 import type { Group } from "three";
 
@@ -95,6 +95,58 @@ const LOCKDOWN_SECONDS = 4;
 const REVEAL_SECONDS = 3;
 const SETTLE_SECONDS = 5;
 const CHIP_VALUES = [10, 50, 100, 500, 1000];
+const CHIP_THEMES: Record<
+  number,
+  {
+    edge: string;
+    notch: string;
+    face: string;
+    inset: string;
+    text: string;
+    glow: string;
+  }
+> = {
+  10: {
+    edge: "#b91c1c",
+    notch: "#090909",
+    face: "#ef4444",
+    inset: "#7f1d1d",
+    text: "#fff7ed",
+    glow: "rgba(248,113,113,0.42)",
+  },
+  50: {
+    edge: "#eab308",
+    notch: "#090909",
+    face: "#fde047",
+    inset: "#ca8a04",
+    text: "#1c1002",
+    glow: "rgba(250,204,21,0.42)",
+  },
+  100: {
+    edge: "#059669",
+    notch: "#090909",
+    face: "#34d399",
+    inset: "#065f46",
+    text: "#03140e",
+    glow: "rgba(52,211,153,0.42)",
+  },
+  500: {
+    edge: "#2563eb",
+    notch: "#090909",
+    face: "#60a5fa",
+    inset: "#1e3a8a",
+    text: "#eff6ff",
+    glow: "rgba(96,165,250,0.42)",
+  },
+  1000: {
+    edge: "#7c3aed",
+    notch: "#090909",
+    face: "#c084fc",
+    inset: "#4c1d95",
+    text: "#fff7ff",
+    glow: "rgba(192,132,252,0.42)",
+  },
+};
 const BET_GROUPS: BetGroup[] = [
   "Quick Bets",
   "Totals",
@@ -234,6 +286,81 @@ const BET_OPTIONS = createBetOptions();
 
 function formatCredits(value: number) {
   return numberFormatter.format(value);
+}
+
+function formatChipAmount(value: number) {
+  return `${value}`;
+}
+
+function getChipTheme(value: number) {
+  const exactTheme = CHIP_THEMES[value];
+  if (exactTheme) return exactTheme;
+
+  const fallbackValue =
+    [...CHIP_VALUES].reverse().find((chip) => value >= chip) ?? CHIP_VALUES[0];
+  return CHIP_THEMES[fallbackValue];
+}
+
+function ChipToken({
+  value,
+  size = "control",
+  selected = false,
+  disabled = false,
+}: {
+  value: number;
+  size?: "control" | "badge";
+  selected?: boolean;
+  disabled?: boolean;
+}) {
+  const theme = getChipTheme(value);
+  const dimension = size === "badge" ? 26 : 38;
+  const innerInset = size === "badge" ? 4 : 6;
+  const amount = formatChipAmount(value);
+  const chipStyle = {
+    width: dimension,
+    height: dimension,
+    background: `repeating-conic-gradient(from 8deg, ${theme.notch} 0deg 10deg, ${theme.edge} 10deg 31deg)`,
+    boxShadow: selected
+      ? `0 0 0 2px rgba(255,255,255,0.78), 0 0 22px ${theme.glow}, inset 0 0 0 1px rgba(255,255,255,0.36)`
+      : `0 8px 18px rgba(0,0,0,0.36), inset 0 0 0 1px rgba(255,255,255,0.28)`,
+  } satisfies CSSProperties;
+  const faceStyle = {
+    inset: innerInset,
+    background: `radial-gradient(circle at 35% 24%, rgba(255,255,255,0.92), ${theme.face} 34%, ${theme.inset} 100%)`,
+  } satisfies CSSProperties;
+
+  return (
+    <span
+      className={cx(
+        "relative inline-grid shrink-0 place-items-center rounded-full border border-black/45 transition",
+        selected && "scale-105",
+        disabled && "opacity-35 grayscale",
+      )}
+      style={chipStyle}
+      aria-hidden="true"
+    >
+      <span
+        className="absolute rounded-full border border-white/35 shadow-inner"
+        style={faceStyle}
+      />
+      <span className="absolute inset-[2px] rounded-full border border-white/25" />
+      <span
+        className={cx(
+          "relative z-10 font-black leading-none tracking-normal",
+          size === "badge"
+            ? amount.length >= 4
+              ? "text-[5px]"
+              : "text-[7px]"
+            : amount.length >= 4
+              ? "text-[7px]"
+              : "text-[8px]",
+        )}
+        style={{ color: theme.text }}
+      >
+        {amount}
+      </span>
+    </span>
+  );
 }
 
 function getBetTheme(option: BetOption) {
@@ -1210,18 +1337,23 @@ function App() {
                       <button
                         key={chip}
                         type="button"
+                        aria-label={`${chip} chip`}
                         disabled={!canBet}
                         onClick={() => setSelectedChip(chip)}
                         className={cx(
-                          "min-h-7 cursor-pointer rounded-full border px-3 text-xs font-black transition",
+                          "grid h-10 w-10 place-items-center rounded-full transition",
                           !canBet
-                            ? "cursor-not-allowed border-white/5 bg-black/20 text-stone-600"
+                            ? "cursor-not-allowed opacity-60"
                             : selectedChip === chip
-                              ? "border-amber-200 bg-amber-300 text-black shadow-lg shadow-amber-300/20"
-                              : "border-white/10 bg-black/35 text-stone-200 hover:border-amber-200/50",
+                              ? "cursor-pointer -translate-y-0.5"
+                              : "cursor-pointer hover:-translate-y-0.5",
                         )}
                       >
-                        {chip}
+                        <ChipToken
+                          value={chip}
+                          selected={selectedChip === chip}
+                          disabled={!canBet}
+                        />
                       </button>
                     ))}
                     <button
@@ -1253,29 +1385,44 @@ function App() {
                   </div>
                 </div>
 
-                {!canBet && (
+                {nickname && !canBet && (
                   <div className="pointer-events-auto absolute inset-0 z-20 overflow-hidden rounded-[1.35rem] bg-black/20">
                     {["topLeft", "topRight", "bottomLeft", "bottomRight"].map(
                       (corner) => (
-                        <img
+                        <div
                           key={corner}
-                          src="/assets/chain-lock-arm.png"
-                          alt=""
                           className={cx(
-                            "lock-chain-arm absolute opacity-0 drop-shadow-[0_0_18px_rgba(203,213,225,0.36)]",
-                            corner === "topLeft" && "lock-chain-arm--top-left",
+                            "lock-chain-lane absolute inset-0",
+                            corner === "topLeft" &&
+                              "lock-chain-lane--top-left",
                             corner === "topRight" &&
-                              "lock-chain-arm--top-right",
+                              "lock-chain-lane--top-right",
                             corner === "bottomLeft" &&
-                              "lock-chain-arm--bottom-left",
+                              "lock-chain-lane--bottom-left",
                             corner === "bottomRight" &&
-                              "lock-chain-arm--bottom-right",
+                              "lock-chain-lane--bottom-right",
                           )}
-                          draggable={false}
-                        />
+                        >
+                          <img
+                            src="/assets/chain-lock-arm.png"
+                            alt=""
+                            className={cx(
+                              "lock-chain-arm absolute opacity-0 drop-shadow-[0_0_18px_rgba(203,213,225,0.36)]",
+                              corner === "topLeft" &&
+                                "lock-chain-arm--top-left",
+                              corner === "topRight" &&
+                                "lock-chain-arm--top-right",
+                              corner === "bottomLeft" &&
+                                "lock-chain-arm--bottom-left",
+                              corner === "bottomRight" &&
+                                "lock-chain-arm--bottom-right",
+                            )}
+                            draggable={false}
+                          />
+                        </div>
                       ),
                     )}
-                    <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="absolute inset-0 z-30 flex items-center justify-center">
                       <div className="lock-center-badge inline-flex items-center gap-2 rounded-full border border-red-200/55 bg-[#2a0807]/95 px-5 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-red-100 shadow-[0_0_32px_rgba(248,113,113,0.3)] backdrop-blur">
                         <LockKeyhole size={14} />
                         Table locked
@@ -1320,7 +1467,7 @@ function App() {
                               className={cx(
                                 "group relative min-h-[30px] rounded-lg border p-1 text-left shadow-lg transition duration-200",
                                 pendingBet &&
-                                  "ring-2 ring-amber-100/70 ring-offset-1 ring-offset-[#14110c]",
+                                  "pr-8 ring-2 ring-amber-100/70 ring-offset-1 ring-offset-[#14110c]",
                                 disabled
                                   ? "cursor-not-allowed border-white/5 bg-white/[0.025] text-stone-500"
                                   : cx(
@@ -1336,9 +1483,12 @@ function App() {
                                 )}
                               />
                               {pendingBet && (
-                                <span className="absolute -right-1 -top-1 z-10 inline-flex min-h-5 min-w-8 items-center justify-center gap-1 rounded-full border border-amber-100/70 bg-[#f8d66c] px-1.5 text-[9px] font-black leading-none text-[#160c03] shadow-[0_8px_20px_rgba(0,0,0,0.35)]">
-                                  <span className="h-2 w-2 rounded-full bg-[#160c03]/80 ring-2 ring-[#fff3ba]" />
-                                  {formatCredits(pendingBet.stake)}
+                                <span className="pointer-events-none absolute right-1 top-1 z-10 rounded-full">
+                                  <ChipToken
+                                    value={pendingBet.stake}
+                                    size="badge"
+                                    selected
+                                  />
                                 </span>
                               )}
                               <span className="block text-[11px] font-black leading-tight text-white group-disabled:text-stone-500">
