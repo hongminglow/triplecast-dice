@@ -106,12 +106,15 @@ export function useGameLoop({ nickname }: UseGameLoopOptions): [
   }, [nickname, phase, secondsLeft]);
 
   // Phase-entry SFX cues:
-  //   - game-start plays when the betting window opens (player can place bets)
+  //   - chain-lock + game-start play when the betting window opens/unlocks
   //   - chain-lock plays when the betting window closes (countdown → lockdown)
   //   - kaching plays on reveal if the player actually won credits
   useEffect(() => {
     if (!nickname) return;
-    if (phase === "countdown") playSfx("game-start");
+    if (phase === "countdown") {
+      playSfx("chain-lock");
+      playSfx("game-start");
+    }
     if (phase === "lockdown") playSfx("chain-lock");
     if (phase === "reveal" && summary && summary.totalPayout > summary.totalStake) {
       playSfx("kaching");

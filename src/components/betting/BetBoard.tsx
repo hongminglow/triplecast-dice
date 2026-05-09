@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { AnimatePresence } from "motion/react";
 
 import { BetCard } from "@/components/betting/BetCard";
 import { ChipSelector } from "@/components/betting/ChipSelector";
@@ -64,7 +65,14 @@ export function BetBoard({
         />
       </div>
 
-      {showLock && <TableLockOverlay animateEntrance={phase === "lockdown"} />}
+      <AnimatePresence initial={false}>
+        {showLock && (
+          <TableLockOverlay
+            key="table-lock-overlay"
+            animateEntrance={phase === "lockdown"}
+          />
+        )}
+      </AnimatePresence>
 
       <div className="flex min-h-0 flex-1 flex-col justify-between gap-[clamp(4px,1vh,14px)]">
         {groupedOptions.map(({ group, options }) => (

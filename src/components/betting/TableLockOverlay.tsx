@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import type { CSSProperties } from "react";
 
 type ChainDef = {
@@ -36,7 +36,8 @@ const CHAINS: ChainDef[] = [
 ];
 
 const CHAIN_TRAVEL_S = 1.9;
-const IMPACT_DELAY_S = 1.82;
+const CHAIN_RELEASE_S = 1.05;
+const IMPACT_DELAY_S = 1.5;
 
 type TableLockOverlayProps = {
   animateEntrance?: boolean;
@@ -45,18 +46,20 @@ type TableLockOverlayProps = {
 export function TableLockOverlay({
   animateEntrance = false,
 }: TableLockOverlayProps) {
-  const prefersReducedMotion = Boolean(useReducedMotion());
-  const shouldAnimate = animateEntrance && !prefersReducedMotion;
+  const shouldAnimate = animateEntrance;
 
   return (
-    <div
+    <motion.div
       aria-hidden="true"
-      className="pointer-events-auto absolute inset-0 z-20 overflow-hidden rounded-[1.35rem] bg-black/64 backdrop-blur-[1px]"
+      className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[1.35rem] bg-black/64 backdrop-blur-[1px]"
+      exit={{ opacity: 1 }}
+      transition={{ duration: CHAIN_RELEASE_S + 0.08, ease: "easeOut" }}
     >
       <motion.div
         className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(252,211,77,0.18),transparent_23%),radial-gradient(circle_at_50%_50%,rgba(190,18,60,0.26),transparent_42%),linear-gradient(135deg,rgba(0,0,0,0.18),rgba(0,0,0,0.6))]"
         initial={shouldAnimate ? { opacity: 0 } : false}
         animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         transition={{ duration: shouldAnimate ? 0.25 : 0 }}
       />
 
@@ -80,6 +83,17 @@ export function TableLockOverlay({
             y: 0,
             opacity: 1,
             scale: 1,
+          }}
+          exit={{
+            x: chain.from.x,
+            y: chain.from.y,
+            opacity: 0.16,
+            scale: 1.08,
+            transition: {
+              duration: CHAIN_RELEASE_S,
+              delay: index * 0.02,
+              ease: [0.4, 0, 0.2, 1],
+            },
           }}
           transition={{
             duration: shouldAnimate ? CHAIN_TRAVEL_S : 0,
@@ -105,6 +119,12 @@ export function TableLockOverlay({
         className="absolute left-1/2 top-1/2 z-30 h-[clamp(92px,10.5vw,132px)] w-[clamp(86px,9.8vw,124px)] -translate-x-1/2 -translate-y-1/2"
         initial={shouldAnimate ? { opacity: 0, scale: 0.64, y: 10 } : false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{
+          opacity: 0,
+          scale: 0.72,
+          y: 8,
+          transition: { duration: 0.2, ease: "easeIn" },
+        }}
         transition={{
           delay: shouldAnimate ? IMPACT_DELAY_S : 0,
           duration: shouldAnimate ? 0.26 : 0,
@@ -130,6 +150,6 @@ export function TableLockOverlay({
           <span className="absolute left-1/2 top-[66%] h-[19%] w-[7%] -translate-x-1/2 rounded-b-full bg-[#201207]" />
         </motion.div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
