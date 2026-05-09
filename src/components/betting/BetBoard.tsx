@@ -47,7 +47,7 @@ export function BetBoard({
   const showLock = Boolean(nickname) && !canBet;
 
   return (
-    <div className="relative min-h-0 overflow-hidden rounded-[1.35rem] bg-white/[0.045] p-2 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(251,191,36,0.08)]">
+    <div className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.35rem] bg-white/[0.045] p-2 pb-2 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(251,191,36,0.08)]">
       <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-base font-black text-white">Bet board</h2>
@@ -66,7 +66,7 @@ export function BetBoard({
 
       {showLock && <TableLockOverlay />}
 
-      <div className="space-y-1">
+      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pr-0.5">
         {groupedOptions.map(({ group, options }) => (
           <section key={group}>
             <div className="mb-0.5 flex items-center justify-between">

@@ -2,6 +2,7 @@ import { Check, CircleDollarSign, X } from "lucide-react";
 
 import { ChipToken } from "@/components/betting/ChipToken";
 import { CHIP_VALUES } from "@/features/game/constants";
+import { playSfx } from "@/lib/audio";
 import { cx, formatCredits } from "@/lib/utils";
 
 type ChipSelectorProps = {
@@ -33,7 +34,11 @@ export function ChipSelector({
           type="button"
           aria-label={`${chip} chip`}
           disabled={!canBet}
-          onClick={() => onSelectChip(chip)}
+          onClick={() => {
+            if (selectedChip === chip) return;
+            playSfx("button-click");
+            onSelectChip(chip);
+          }}
           className={cx(
             "grid h-10 w-10 place-items-center rounded-full transition-transform duration-200",
             !canBet

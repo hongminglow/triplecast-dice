@@ -22,7 +22,7 @@ import type {
   PlacedBet,
   RoundRecord,
 } from "@/features/game/types";
-import { createDiceShakeLoop, playCountdownTick } from "@/lib/audio";
+import { createLoopingSfx, playSfx } from "@/lib/audio";
 
 export type GameLoopState = {
   balance: number;
@@ -99,8 +99,21 @@ export function useGameLoop({ nickname }: UseGameLoopOptions): [
     if (lastTickSecondRef.current === secondsLeft) return;
 
     lastTickSecondRef.current = secondsLeft;
-    playCountdownTick();
+    playSfx("countdown-chime");
   }, [nickname, phase, secondsLeft]);
+
+  // Phase-entry SFX cues:
+  //   - game-start plays when a new round begins rolling
+  //   - chain-lock plays when the betting window closes (countdown → lockdown)
+  //   - kaching plays on reveal if the player actually won credits
+  useEffect(() => {
+    if (!nickname) return;
+    if (phase === "rolling") playSfx("game-start");
+    if (phase === "lockdown") playSfx("chain-lock");
+    if (phase === "reveal" && summary && summary.totalPayout > summary.totalStake) {
+      playSfx("kaching");
+    }
+  }, [nickname, phase, summary]);
 
   // Rolling audio lifecycle.
   useEffect(() => {
@@ -110,7 +123,7 @@ export function useGameLoop({ nickname }: UseGameLoopOptions): [
       return;
     }
 
-    const audio = createDiceShakeLoop();
+    const audio = createLoopingSfx("dice-shake");
     rollingAudioRef.current = audio;
     void audio.play().catch(() => undefined);
 
@@ -215,6 +228,7 @@ export function useGameLoop({ nickname }: UseGameLoopOptions): [
       if (!canBet) return;
       if (balance - pendingTotal < chip) return;
 
+      playSfx("button-click");
       setPendingBets((current) => {
         const existingBet = current.find((bet) => bet.option.id === option.id);
         if (!existingBet) {
@@ -242,10 +256,12 @@ export function useGameLoop({ nickname }: UseGameLoopOptions): [
     setBets((current) => [...current, ...confirmedBets]);
     setBalance((current) => current - pendingTotal);
     setPendingBets([]);
+    playSfx("confirm-bet");
   }, [balance, canBet, pendingBets, pendingTotal]);
 
   const clearPendingBets = useCallback(() => {
     if (!canBet) return;
+    playSfx("button-click");
     setPendingBets([]);
   }, [canBet]);
 
@@ -256,6 +272,7 @@ export function useGameLoop({ nickname }: UseGameLoopOptions): [
       const targetBet = bets.find((bet) => bet.id === betId);
       if (!targetBet) return;
 
+      playSfx("button-click");
       setBets((current) => current.filter((bet) => bet.id !== betId));
       setBalance((current) => current + targetBet.stake);
     },

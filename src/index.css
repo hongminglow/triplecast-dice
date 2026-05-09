@@ -91,170 +91,103 @@ input:focus-visible {
   }
 }
 
-.lock-chain-lane {
-  overflow: hidden;
-}
-
-.lock-chain-lane--top-left {
-  clip-path: polygon(0 0, 64% 0, 50% 50%, 0 64%);
-}
-
-.lock-chain-lane--top-right {
-  clip-path: polygon(36% 0, 100% 0, 100% 64%, 50% 50%);
-}
-
-.lock-chain-lane--bottom-left {
-  clip-path: polygon(0 36%, 50% 50%, 64% 100%, 0 100%);
-}
-
-.lock-chain-lane--bottom-right {
-  clip-path: polygon(50% 50%, 100% 36%, 100% 100%, 36% 100%);
-}
-
 .lock-chain-arm {
-  width: min(60%, 700px);
+  width: clamp(220px, 55%, 640px);
   height: auto;
   transform-origin: center;
-  animation-duration: 1400ms, 3200ms;
-  animation-delay: 0ms, 1400ms;
-  animation-iteration-count: 1, infinite;
-  animation-fill-mode: forwards, none;
-  animation-timing-function: cubic-bezier(0.18, 0.72, 0.18, 1), ease-in-out;
-  will-change: opacity, transform, filter;
+  animation-duration: 2000ms;
+  animation-delay: 0ms;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+  animation-timing-function: cubic-bezier(0.22, 0.68, 0.24, 1);
+  will-change: opacity, transform;
+  pointer-events: none;
 }
 
 .lock-chain-arm--top-left {
-  left: -14%;
-  top: -24%;
-  animation-name: chainLockTopLeft, chainLockShimmerTopLeft;
+  top: -28%;
+  left: -22%;
+  animation-name: chainLockTopLeft;
 }
 
 .lock-chain-arm--top-right {
-  right: -14%;
-  top: -24%;
-  animation-name: chainLockTopRight, chainLockShimmerTopRight;
+  top: -28%;
+  right: -22%;
+  animation-name: chainLockTopRight;
 }
 
 .lock-chain-arm--bottom-left {
-  bottom: -24%;
-  left: -14%;
-  animation-name: chainLockBottomLeft, chainLockShimmerBottomLeft;
+  bottom: -28%;
+  left: -22%;
+  animation-name: chainLockBottomLeft;
 }
 
 .lock-chain-arm--bottom-right {
-  bottom: -24%;
-  right: -14%;
-  animation-name: chainLockBottomRight, chainLockShimmerBottomRight;
+  bottom: -28%;
+  right: -22%;
+  animation-name: chainLockBottomRight;
 }
 
 .lock-center-badge {
   opacity: 0;
   transform: scale(0.86);
-  animation: lockBadgeReveal 420ms ease-out 1500ms forwards,
-    lockedPulse 1.6s ease-in-out 2.02s infinite;
+  animation: lockBadgeReveal 380ms ease-out 2050ms forwards,
+    lockedPulse 1.6s ease-in-out 2.43s infinite;
 }
 
 @keyframes chainLockTopLeft {
   0% {
     opacity: 0;
-    transform: translate(-142%, -126%) scaleY(-1);
+    transform: translate(-70%, -70%) rotate(-18deg);
   }
-  20% {
+  25% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translate(28%, 42%) scaleY(-1);
+    transform: translate(22%, 28%) rotate(-24deg);
   }
 }
 
 @keyframes chainLockTopRight {
   0% {
     opacity: 0;
-    transform: translate(142%, -126%) scale(-1, -1);
+    transform: translate(70%, -70%) rotate(18deg) scaleX(-1);
   }
-  20% {
+  25% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translate(-28%, 42%) scale(-1, -1);
+    transform: translate(-22%, 28%) rotate(24deg) scaleX(-1);
   }
 }
 
 @keyframes chainLockBottomLeft {
   0% {
     opacity: 0;
-    transform: translate(-142%, 126%);
+    transform: translate(-70%, 70%) rotate(18deg) scaleY(-1);
   }
-  20% {
+  25% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translate(28%, -42%);
+    transform: translate(22%, -28%) rotate(24deg) scaleY(-1);
   }
 }
 
 @keyframes chainLockBottomRight {
   0% {
     opacity: 0;
-    transform: translate(142%, 126%) scaleX(-1);
+    transform: translate(70%, 70%) rotate(-18deg) scale(-1, -1);
   }
-  20% {
+  25% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translate(-28%, -42%) scaleX(-1);
-  }
-}
-
-@keyframes chainLockShimmerTopLeft {
-  0%,
-  100% {
-    transform: translate(28%, 42%) scaleY(-1);
-    filter: drop-shadow(0 0 18px rgba(203, 213, 225, 0.36));
-  }
-  50% {
-    transform: translate(26%, 40%) scaleY(-1);
-    filter: drop-shadow(0 0 26px rgba(248, 113, 113, 0.55));
-  }
-}
-
-@keyframes chainLockShimmerTopRight {
-  0%,
-  100% {
-    transform: translate(-28%, 42%) scale(-1, -1);
-    filter: drop-shadow(0 0 18px rgba(203, 213, 225, 0.36));
-  }
-  50% {
-    transform: translate(-26%, 40%) scale(-1, -1);
-    filter: drop-shadow(0 0 26px rgba(248, 113, 113, 0.55));
-  }
-}
-
-@keyframes chainLockShimmerBottomLeft {
-  0%,
-  100% {
-    transform: translate(28%, -42%);
-    filter: drop-shadow(0 0 18px rgba(203, 213, 225, 0.36));
-  }
-  50% {
-    transform: translate(26%, -40%);
-    filter: drop-shadow(0 0 26px rgba(248, 113, 113, 0.55));
-  }
-}
-
-@keyframes chainLockShimmerBottomRight {
-  0%,
-  100% {
-    transform: translate(-28%, -42%) scaleX(-1);
-    filter: drop-shadow(0 0 18px rgba(203, 213, 225, 0.36));
-  }
-  50% {
-    transform: translate(-26%, -40%) scaleX(-1);
-    filter: drop-shadow(0 0 26px rgba(248, 113, 113, 0.55));
+    transform: translate(-22%, -28%) rotate(-24deg) scale(-1, -1);
   }
 }
 
