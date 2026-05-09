@@ -37,5 +37,5 @@ export const EXACT_TOTAL_PAYOUTS: Record<number, number> = {
   17: 60,
 };
 
-export const MAX_HISTORY_ITEMS = 8;
+export const MAX_HISTORY_ITEMS = 50;
 export const MAX_NICKNAME_LENGTH = 18;

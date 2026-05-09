@@ -5,8 +5,7 @@ import { NicknameGate } from "@/components/chrome/NicknameGate";
 import { BetBoard } from "@/components/betting/BetBoard";
 import { BetSlip } from "@/components/betting/BetSlip";
 import { DiceStage } from "@/components/dice-stage/DiceStage";
-import { RoundSummary } from "@/components/summary/RoundSummary";
-import { totalDice } from "@/features/game/dice";
+import { SessionSummary } from "@/components/summary/SessionSummary";
 import { useGameLoop } from "@/features/game/useGameLoop";
 
 function App() {
@@ -34,7 +33,6 @@ function App() {
 
   const canConfirmBets =
     canBet && pendingBets.length > 0 && pendingTotal <= balance;
-  const resultTotal = totalDice(result);
   const revealingWin = hasWon && (phase === "reveal" || phase === "settling");
 
   return (
@@ -79,12 +77,7 @@ function App() {
               />
 
               <aside className="flex min-h-0 flex-col gap-2">
-                <RoundSummary
-                  summary={summary}
-                  result={result}
-                  resultTotal={resultTotal}
-                  hasWon={hasWon}
-                />
+                <SessionSummary balance={balance} history={history} />
                 <BetSlip
                   bets={bets}
                   totalStaked={totalStaked}

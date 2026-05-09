@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { History, X } from "lucide-react";
 
 import type { RoundRecord } from "@/features/game/types";
+import { cx, formatCredits } from "@/lib/utils";
 
 type HistoryPopoverProps = {
   history: RoundRecord[];
@@ -93,24 +94,53 @@ export function HistoryPopover({
                 Completed rounds will appear here until refresh.
               </p>
             ) : (
-              history.map((record) => (
-                <div
-                  key={record.round}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-3"
-                >
-                  <div className="min-w-0">
-                    <p className="font-black text-white">
-                      Round #{record.round}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-stone-400">
-                      {record.result.join("-")}
-                    </p>
+              history.map((record) => {
+                const didParticipate = record.betCount > 0;
+                const isWin = didParticipate && record.net > 0;
+                const isLoss = didParticipate && record.net < 0;
+                return (
+                  <div
+                    key={record.round}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/30 p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-black text-white">
+                        Round #{record.round}
+                      </p>
+                      <p className="mt-0.5 text-xs font-semibold text-stone-500">
+                        {record.result.join(" - ")}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {didParticipate ? (
+                        <>
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-stone-500">
+                            Bet {formatCredits(record.totalStake)}
+                          </p>
+                          <p
+                            className={cx(
+                              "text-sm font-black",
+                              isWin && "text-amber-200",
+                              isLoss && "text-rose-300",
+                              !isWin && !isLoss && "text-stone-300",
+                            )}
+                          >
+                            {isWin
+                              ? `+${formatCredits(record.net)}`
+                              : isLoss
+                                ? `-${formatCredits(Math.abs(record.net))}`
+                                : "Even"}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs font-semibold text-stone-600">
+                          Did not participate
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="grid h-12 min-w-12 place-items-center rounded-2xl border border-amber-100/20 bg-amber-200/10 px-3 text-xl font-black leading-none text-amber-100">
-                    {record.total}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

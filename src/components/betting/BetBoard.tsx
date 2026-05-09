@@ -47,11 +47,9 @@ export function BetBoard({
   const showLock = Boolean(nickname) && !canBet;
 
   return (
-    <div className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.35rem] bg-white/[0.045] p-2 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(251,191,36,0.08)]">
-      <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-base font-black text-white">Bet board</h2>
-        </div>
+    <div className="relative flex min-h-0 flex-col overflow-hidden rounded-[1.35rem] bg-white/[0.045] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_0_0_1px_rgba(251,191,36,0.08)]">
+      <div className="mb-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-sm font-black text-white">Bet board</h2>
         <ChipSelector
           selectedChip={selectedChip}
           onSelectChip={onSelectChip}
@@ -66,14 +64,12 @@ export function BetBoard({
 
       {showLock && <TableLockOverlay />}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
+      <div className="flex min-h-0 flex-1 flex-col justify-between gap-[clamp(4px,1vh,14px)]">
         {groupedOptions.map(({ group, options }) => (
           <section key={group}>
-            <div className="mb-1 flex items-center justify-between">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-300">
-                {group}
-              </h3>
-            </div>
+            <h3 className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-stone-300">
+              {group}
+            </h3>
             <div
               className={cx(
                 "grid gap-1",

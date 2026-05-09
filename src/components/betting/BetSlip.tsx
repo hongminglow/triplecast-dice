@@ -1,5 +1,3 @@
-import { LockKeyhole } from "lucide-react";
-
 import { ChipToken } from "@/components/betting/ChipToken";
 import type {
   BetOutcome,
@@ -84,8 +82,7 @@ function BetSlipRow({ bet, outcome }: BetSlipRowProps) {
             {outcome.didWin ? `+${formatCredits(outcome.profit)}` : "Lost"}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/30 bg-emerald-300/10 px-2 py-0.5 text-xs font-black text-emerald-100">
-            <LockKeyhole size={11} />
+          <span className="text-sm font-black text-emerald-100">
             {formatCredits(bet.stake)}
           </span>
         )}
