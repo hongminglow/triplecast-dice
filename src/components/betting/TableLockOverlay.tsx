@@ -35,9 +35,9 @@ const CHAINS: ChainDef[] = [
   },
 ];
 
-const CHAIN_TRAVEL_S = 1.9;
+const CHAIN_TRAVEL_S = 0.5;
 const CHAIN_RELEASE_S = 1.05;
-const IMPACT_DELAY_S = 1.5;
+const IMPACT_DELAY_S = 0.42;
 
 type TableLockOverlayProps = {
   animateEntrance?: boolean;

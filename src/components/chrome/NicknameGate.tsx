@@ -53,10 +53,19 @@ export function NicknameGate({ onSubmit }: NicknameGateProps) {
         <button
           type="submit"
           disabled={!nameDraft.trim()}
-          className="group relative mt-5 flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-2xl border border-amber-100/55 bg-gradient-to-r from-amber-200 via-yellow-300 to-emerald-200 px-5 py-4 text-base font-black text-[#140903] shadow-[0_18px_48px_rgba(245,158,11,0.24)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_60px_rgba(245,158,11,0.34)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:border-stone-600/40 disabled:bg-none disabled:bg-stone-800 disabled:text-stone-500 disabled:shadow-none"
+          className="group relative mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-3 overflow-hidden rounded-xl border border-amber-300/60 bg-[#1a1007] px-5 text-sm font-black uppercase tracking-[0.18em] text-amber-100 shadow-[0_18px_44px_rgba(0,0,0,0.45),0_0_26px_rgba(245,158,11,0.18),inset_0_1px_0_rgba(255,236,179,0.24)] transition duration-200 hover:-translate-y-0.5 hover:border-amber-200/90 hover:bg-[#241508] hover:shadow-[0_24px_58px_rgba(0,0,0,0.52),0_0_34px_rgba(245,158,11,0.28),inset_0_1px_0_rgba(255,236,179,0.35)] active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:border-white/8 disabled:bg-black/25 disabled:text-stone-600 disabled:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
         >
-          <span className="absolute inset-y-0 -left-1/3 w-1/3 skew-x-[-18deg] bg-white/35 opacity-0 blur-sm transition duration-300 group-hover:left-full group-hover:opacity-100 group-disabled:hidden" />
-          <Dices size={18} className="relative" />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_0%,rgba(252,211,77,0.22),transparent_40%)] opacity-90 group-disabled:hidden"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-3 top-0 h-px bg-amber-100/45 group-disabled:hidden"
+          />
+          <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-amber-200/50 bg-amber-300/15 text-amber-200 shadow-[inset_0_0_12px_rgba(251,191,36,0.18)] group-disabled:border-white/5 group-disabled:bg-white/5 group-disabled:text-stone-600">
+            <Dices size={16} />
+          </span>
           <span className="relative">Enter table</span>
         </button>
       </form>
