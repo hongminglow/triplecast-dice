@@ -11,14 +11,18 @@ This is not a real-money betting product. Everything is client-side and session-
 - Top app bar with nickname, balance, round number, and a history icon.
 - Compact top TV-style Three.js dice stage sized as a broadcast strip instead of a full hero.
 - Cinematic countdown displayed directly over the dice area during betting.
-- Red pulse and tick-tock sound cue during the final `10s` of countdown.
+- Red urgent countdown pulse during the final `10s`, with a chime cue at the 10-second mark.
 - Casino-style cover that closes over the dice while bets are open.
+- Chain-lock overlay on the bet board whenever betting is disabled, with four animated chains converging into a center padlock on lockdown and retracting on unlock.
 - Large dice-stage result overlay that announces the final values as `x x x` plus the total.
 - Brighter jewel-casino styling with distinct bet colors for Small, Big, Odd, Even, Singles, Doubles, Triples, and exact totals.
 - Betting board with chip values `10`, `50`, `100`, `500`, and `1000`.
-- Bet slip showing current bets, total stake, removable bets before lockdown, and settlement results.
+- Chip selector with queued pending bets, a themed confirm/place-bet control, and a clear-pending action before confirmation.
+- Bet slip showing confirmed current bets, total stake, and settlement results.
 - Round result summary with dice values, total, staked amount, payout, and net win/loss.
-- Session-only history popover for recent completed rounds.
+- Session-only game history popover for every completed round.
+- Sidebar round history filtered to rounds the player actually participated in.
+- Preloaded SFX for button clicks, bet confirmation, countdown, game start, dice rolling, chain lock/unlock, and win payout.
 - Desktop and mobile responsive layouts.
 
 ## Game Flow
@@ -38,12 +42,16 @@ Each round runs automatically.
 3. **Countdown**
    - Countdown starts at `60s`.
    - Bets are accepted during this phase only.
-   - Stakes are deducted immediately when bets are placed.
+   - Chip clicks queue pending bets first.
+   - Stakes are deducted only when the player confirms the pending bets.
    - The dice stay covered and stationary.
+   - The chain-lock overlay retracts from the table as betting opens.
 
 4. **Lockdown**
    - No new bets can be placed.
-   - Existing bets can no longer be removed.
+   - Pending unconfirmed bets are cleared.
+   - Existing confirmed bets are locked in.
+   - Four chains animate from the table corners toward the center padlock.
    - The covered dice wait briefly before reveal.
 
 5. **Dice open**
@@ -87,12 +95,13 @@ Exact total payouts:
 
 ## Win And Loss Behavior
 
-- A bet stake is deducted as soon as the bet is placed.
+- A bet stake is deducted when queued pending bets are confirmed.
 - If the bet wins, the app returns the stake plus profit.
 - If the bet loses, the deducted stake is kept as the loss.
 - The result summary shows total staked, total paid, and net win/loss.
 - Winning rounds trigger a gold visual highlight, result overlay emphasis, and dice-stage sparkle effect.
-- The app-bar history icon opens a popover with recent rounds.
+- The app-bar history icon opens the full game history with every completed round.
+- The sidebar round history only shows rounds where the player had confirmed bets.
 - History records the round number, dice result, total, number of bets, and net result.
 
 ## Tech Stack
@@ -104,6 +113,7 @@ Exact total payouts:
 - Three.js through `@react-three/fiber`
 - Drei helpers through `@react-three/drei`
 - `lucide-react` for UI icons
+- `motion` for chain-lock, unlock, and UI transition animation
 
 ## Local Development
 
@@ -141,5 +151,5 @@ http://127.0.0.1:5173/
 
 - `SPEC.md` contains the tracking spec used for this implementation.
 - The game intentionally does not use backend storage, auth, wallets, or account state.
-- The current version uses procedural 3D dice and code-native UI, without generated raster assets.
+- The current version uses procedural 3D dice, code-native UI, and project raster/audio assets for the chain-lock cinematic and SFX.
 - The main desktop table is designed to fit in one viewport so players can see dice, result, slip, and betting options together.
